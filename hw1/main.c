@@ -1,12 +1,22 @@
 /* CSCI 5229 Computer Graphics
-*  University of Colorado Boulder
+* University of Colorado Boulder
 * @author : Madhukar Arora
 * HW1
 */
+
+/* Disclaimer : Most of the code is not my own work but referred from the example codes provided
+   by the instructor in the class.*/
+
+
+/* Includes */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <math.h>
+#ifdef USEGLEW
+#include <GL/glew.h>
+#endif
+//  OpenGL with prototypes for glext
 #define GL_GLEXT_PROTOTYPES
 #ifdef __APPLE__
 #include <GLUT/glut.h>
@@ -14,16 +24,34 @@
 #include <GL/glut.h>
 #endif
 
-
-#define LEN 8192  //  Maximum amount of text
-double th = 0; // rotation angle
-double zh = 0; //spin angle
+// Default resolution 
+// For Retina Displays compile with -DRES=2
 #ifndef RES
 #define RES 1
 #endif
 
+//Globals
+int th = 0;      //Azimuth of view angle
+int ph = 0;      //Elevation of view angle
+int zh = 0;
+int mode = 1;    //Dimension (1-4)
+double z = 0;    //Z variable
+double w = 1;    //W variable
+double dim=2;   //Dimension of orthogonal box
+const char* text[] = {"","2D","3D constant Z","3D","4D"};  //Dimension display text
 
 
+// Lorenz Parameters
+#define NUM_STEPS  (50000) //number of points
+double s = 10;
+double b = 2.6666;
+double r = 28;
+
+double coordinates[NUM_STEPS][3]; // to store 50000 XYZ coordinates
+
+
+
+#define LEN 8192  //  Maximum amount of text
 /* function for text */
 void Print(const char* format , ...)
 {
@@ -59,6 +87,69 @@ void ErrCheck(char* where)
     }
 }
 
+
+
+/* convenience function to draw the X-Y-Z axes*/
+void drawXYZ(void)
+{
+    glColor3f(1.0,1.0,1.0); //color - white
+    glBegin(GL_LINES);
+    glVertex3d(0,0,0);
+    glVertex3d(1,0,0); //X-axis
+    glVertex3d(0,0,0);
+    glVertex3d(0,1,0); //Y-axis
+    glVertex3d(0,0,0);
+    glVertex3d(0,0,1); //Z-axis
+    glEnd();
+
+    //Label Axes
+    glRasterPos3d(1,0,0);
+    Print("X");
+    glRasterPos3d(0,1,0);
+    Print("Y");
+    glRasterPos3d(0,0,1);
+    Print("Z");
+    
+    /* update display */
+    glutPostRedisplay();
+}
+
+
+/* convenience function to store Lorenz Points */
+void generateLorenzPoints(void)
+{
+    double x = 1;
+    double y = 1;
+    double z = 1; 
+
+    double dt = 0.001; //time step
+
+    for(int i = 0; i < NUM_STEPS; i++)
+    {
+        double dx = s * (y-x);
+        double dy = (x * (r-z))-y;
+        double dz = (x*y) - (b*z);
+
+        x += dt*dx;
+        y += dt*dy;
+        z += dt*dz;
+        coordinates[i][0] = x;
+        coordinates[i][1] = y;
+        coordinates[i][2] = z;
+
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
 /* function called by GLUT to display the scene */
 void display(void)
 {
@@ -67,10 +158,8 @@ void display(void)
 
     /* reset transformation */
     glLoadIdentity();
-
-   
-
-     /* rotate around Y axis */
+    
+    /* rotate around Y axis */
     glRotatef(th,0.0,1.0,0.0);
 
     /* draw triangle - RGB*/
@@ -99,6 +188,7 @@ void display(void)
     glVertex2f(-0.5,-0.5);
     glEnd();
 
+    drawXYZ();
     /* print to window rotation angle */
     glColor3f(1,1,1);
     glWindowPos2i(5,5);
@@ -133,7 +223,6 @@ void special(int key,int x, int y)
     glutPostRedisplay();
 }
 
-
 /* function called by GLUT when window is resized */
 void reshape(int width,int height)
 {
@@ -165,6 +254,7 @@ void idle(void)
     glutPostRedisplay();
 }
 
+
 int main(int argc,char* argv[])
 {
     /* initialize OpenGL Utility Tool */
@@ -173,9 +263,15 @@ int main(int argc,char* argv[])
     /* Request double bufferred true color window */
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); //GLUT_DEPTH adds z-buffer
 
+    /* Request 500 x 500 pixel window */
+    glutInitWindowSize(500,500);
     /* Create Window */
     glutCreateWindow("Hello World");
 
+#ifdef USEGLEW
+   //  Initialize GLEW
+   if (glewInit()!=GLEW_OK) Fatal("Error initializing GLEW\n");
+#endif
     /* Register function used to 
        display scene 
        window resizing
