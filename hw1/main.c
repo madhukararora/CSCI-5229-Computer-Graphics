@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <math.h>
+
 #ifdef USEGLEW
 #include <GL/glew.h>
 #endif
@@ -37,7 +38,7 @@ int zh = 0;
 int mode = 1;    //Dimension (1-4)
 double z = 0;    //Z variable
 double w = 1;    //W variable
-double dim=2;   //Dimension of orthogonal box
+double dim = 3.0;   //Dimension of orthogonal box
 const char* text[] = {"","2D","3D constant Z","3D","4D"};  //Dimension display text
 
 
@@ -45,9 +46,9 @@ const char* text[] = {"","2D","3D constant Z","3D","4D"};  //Dimension display t
 #define NUM_STEPS  (50000) //number of points
 double s = 10;
 double b = 2.6666;
-double r = 28;
+double r = 50;
 
-double coordinates[NUM_STEPS][3]; // to store 50000 XYZ coordinates
+float coordinates[NUM_STEPS][3]; // to store 50000 XYZ coordinates
 
 
 
@@ -92,6 +93,7 @@ void ErrCheck(char* where)
 /* convenience function to draw the X-Y-Z axes*/
 void drawXYZ(void)
 {
+    glPointSize(10);
     glColor3f(1.0,1.0,1.0); //color - white
     glBegin(GL_LINES);
     glVertex3d(0,0,0);
@@ -118,32 +120,67 @@ void drawXYZ(void)
 /* convenience function to store Lorenz Points */
 void generateLorenzPoints(void)
 {
-    double x = 1;
-    double y = 1;
-    double z = 1; 
+    double x = 1.0;
+    double y = 1.0;
+    double z = 1.0; 
 
     double dt = 0.001; //time step
 
     for(int i = 0; i < NUM_STEPS; i++)
     {
         double dx = s * (y-x);
-        double dy = (x * (r-z))-y;
-        double dz = (x*y) - (b*z);
+        double dy = x * (r-z)-y;
+        double dz = x*y - b*z;
 
-        x += dt*dx;
-        y += dt*dy;
-        z += dt*dz;
-        coordinates[i][0] = x;
-        coordinates[i][1] = y;
-        coordinates[i][2] = z;
-
+        x += (dt*dx);
+        y += (dt*dy);
+        z += (dt*dz);
+        //printf("%d %lf %lf %lf\n",i,x,y,z);
+        /*scaling down by a factor of 100*/
+        coordinates[i][0] = x*0.01;
+        coordinates[i][1] = y*0.01;
+        coordinates[i][2] = z*0.01;
     }
 
 }
 
 
+/* function to generate random number between a range*/
+// Referred Geeks for Geeks code
+// using it to generate R Y B values
 
 
+int returnRandoms(void)
+{
+    int low = -1000;
+    int high = 1000; //max unsigned 8bit value
+    int num = (rand() % (high-low+1))+ low;
+    //printf("num : %d\n",num);
+    return num;
+    
+}
+
+/* convenience function to generate the Lorenz Graph*/
+void generateLorenzGraph(void)
+{
+    
+    /* generate coordinates for Lorenz Graph*/
+    generateLorenzPoints();
+    glPointSize(5);
+    glBegin(GL_LINE_STRIP); //connected vertices
+   for (int i=0;i<NUM_STEPS;i++)
+  	{
+        int R,G,B;
+        R = returnRandoms();
+        G = returnRandoms();
+        B = returnRandoms();
+		/*For adding shades of color*/
+		glColor3ub(R,G,B);
+		glVertex3f(coordinates[i][0],coordinates[i][1],coordinates[i][2]);
+        glVertex3fv(coordinates[i]);
+  	}
+    glEnd();
+}
 
 
 
@@ -156,43 +193,25 @@ void display(void)
     /* clear screen and Z-Buffer*/
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    /* reset transformation */
+    /* reset transformation - clears changes made earlier */
     glLoadIdentity();
+
+    /* rotation about X axis */
+    glRotated(ph,1,0,0);
     
-    /* rotate around Y axis */
-    glRotatef(th,0.0,1.0,0.0);
+    /* rotation about Y axis */
+    glRotated(th,0,1,0);
 
-    /* draw triangle - RGB*/
-    glBegin(GL_POLYGON);
-    glColor3f(1.0,0.0,0.0);
-    glVertex2f(0.0,0.5);
-    glColor3f(0.0,1.0,0.0);
-    glVertex2f(0.5,0.5);
-    glColor3f(0.0,0.0,1.0);
-    glVertex2f(-0.5,-0.5);
-    glEnd();
-
-
-     /* rotate around Z axis */
-    glRotatef(zh,0.0,0.0,1.0);
-    /* offset second triangle */
-    glTranslatef(0.2,0.2,0.2);
-
-    /* draw second triangle*/
-    glBegin(GL_POLYGON);
-    glColor3f(1.0,1.0,0.0);
-    glVertex2f(0.0,0.5);
-    glColor3f(0.0,1.0,1.0);
-    glVertex2f(0.5,0.5);
-    glColor3f(1.0,0.0,1.0);
-    glVertex2f(-0.5,-0.5);
-    glEnd();
-
+    /* draw the axis */ 
     drawXYZ();
+
+    /* generate the Lorenz Curve */
+    generateLorenzGraph();
+
     /* print to window rotation angle */
     glColor3f(1,1,1);
     glWindowPos2i(5,5);
-    Print("Angle = %.1f",th);
+    Print("Angle = %d",th);
 
     /* Sanity check */
     ErrCheck("display"); 
@@ -210,10 +229,16 @@ void special(int key,int x, int y)
     switch (key)
     {
         case GLUT_KEY_RIGHT:
-            th += 5;
+            th = (th + 5) % 360;
             break;
         case GLUT_KEY_LEFT:
-            th -= 5;
+            th = (th - 5) % 360;
+            break;
+        case GLUT_KEY_UP:
+            ph = (ph + 5) % 360;
+            break;
+        case GLUT_KEY_DOWN:
+            ph = (ph - 5) % 360;
             break;
         default:
             break;
@@ -266,7 +291,7 @@ int main(int argc,char* argv[])
     /* Request 500 x 500 pixel window */
     glutInitWindowSize(500,500);
     /* Create Window */
-    glutCreateWindow("Hello World");
+    glutCreateWindow("Madhukar's Lorenz Attractor");
 
 #ifdef USEGLEW
    //  Initialize GLEW
