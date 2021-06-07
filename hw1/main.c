@@ -5,7 +5,13 @@
 */
 
 /* Disclaimer : Most of the code is not my own work but referred from the example codes provided
-   by the instructor in the class.*/
+   by the instructor in the class.
+
+   Used Example 6 provided in class.
+   https://www.informit.com/articles/article.aspx?p=328646&seqNum=6
+   https://www.prinmath.com/csci5229/misc/lorenz.c
+
+*/
 
 
 /* Includes */
@@ -41,7 +47,7 @@ double z = 0;    //Z variable
 double w = 1;    //W variable
 double dim = 3.0;   //Dimension of orthogonal box
 const char* text[] = {"NORMAL MODE","ANIMATION MODE"};  //Dimension display text
-bool animation = false;
+bool animation = true;
 
 // Lorenz Parameters
 #define NUM_STEPS  (50000) //number of points
@@ -146,20 +152,6 @@ void generateLorenzPoints(void)
 }
 
 
-/* function to generate random number between a range*/
-// Referred Geeks for Geeks code
-// using it to generate R Y B values
-
-
-int returnRandoms(int low,int high)
-{
-    if((low == 0) && (high == 0))
-        return 0;
-    int num = (rand() % (high-low+1))+ low;
-    //printf("num : %d\n",num);
-    return num;
-    
-}
 
 /* convenience function to generate the Lorenz Graph*/
 void generateLorenzGraph(void)
@@ -178,6 +170,9 @@ void generateLorenzGraph(void)
         glVertex3fv(coordinates[i]);
   	}
     glEnd();
+
+    /* update the display */
+    glutPostRedisplay();
 }
 
 
@@ -200,8 +195,12 @@ void display(void)
     /* rotation about Y axis */
     glRotated(th,0,1,0);
 
-    if(animation)
+    if(animation){
+        redGradient = (redGradient+25)%255;
+        greenGradient = (greenGradient+55)%255;
+        blueGradient = (blueGradient+75)%255;
         glRotated(zh,0,0,1);
+    }
     /* draw the axis */ 
     drawXYZ();
 
@@ -313,11 +312,13 @@ void key(unsigned char ch,int x, int y)
         //Default
         case('D'):
         case('d'):
+           animation = false;
            s = 10;
            b = 2.6666;
            r = 28;
            th = 0;      //Azimuth of view angle
            ph = 0;      //Elevation of view angle
+           redGradient = 100;greenGradient = 100;blueGradient = 100;
            break;
         case('S'):
             s = s+1;
@@ -391,8 +392,8 @@ int main(int argc,char* argv[])
     /* Request double bufferred true color window */
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); //GLUT_DEPTH adds z-buffer
 
-    /* Request 500 x 500 pixel window */
-    glutInitWindowSize(500,500);
+    /* Request 940 x 640 pixel window */
+    glutInitWindowSize(940,640);
     /* Create Window */
     glutCreateWindow("Madhukar's Lorenz Attractor");
 

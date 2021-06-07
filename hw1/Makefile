@@ -2,7 +2,7 @@ all: hw1
 
 CFLAGS=-O3 -Wall
 LIBS=-lglut -lGLU -lGL -lm
-CLEAN= rm -rf $(target) *.o *.all
+CLEAN= rm -rf *.o hw1
 
 #compilation and linking
 hw1: main.c
