@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <math.h>
+#include <stdbool.h>
 
 #ifdef USEGLEW
 #include <GL/glew.h>
@@ -39,8 +40,8 @@ int mode = 1;    //Dimension (1-4)
 double z = 0;    //Z variable
 double w = 1;    //W variable
 double dim = 3.0;   //Dimension of orthogonal box
-const char* text[] = {"","2D","3D constant Z","3D","4D"};  //Dimension display text
-
+const char* text[] = {"NORMAL MODE","ANIMATION MODE"};  //Dimension display text
+bool animation = false;
 
 // Lorenz Parameters
 #define NUM_STEPS  (50000) //number of points
@@ -199,6 +200,8 @@ void display(void)
     /* rotation about Y axis */
     glRotated(th,0,1,0);
 
+    if(animation)
+        glRotated(zh,0,0,1);
     /* draw the axis */ 
     drawXYZ();
 
@@ -211,13 +214,16 @@ void display(void)
     Print("view angle %d %d, b = %f, r = %f, s = %f",th,ph,b,r,s);
 
     glWindowPos2i(5,30);
-    Print("S to increase, s to decrease, B to increase, b to decrease, R to increase, r to decrease, D to go to default");
+    Print("S to increase, s to decrease, B to increase, b to decrease, R to increase, r to decrease, M or m for animation mode,D to go to default");
 
     glWindowPos2i(5,60);
     Print("Arrow keys to change view angle about X and Y axis");
 
     glWindowPos2i(5,90);
     Print("F1 to increase Red color, F2 to increase Green color, F3 to increase Blue color");
+
+    glWindowPos2i(5,120);
+    Print("%s",text[animation]);
     /* Sanity check */
     ErrCheck("display"); 
     /* make scene visible */
@@ -331,6 +337,11 @@ void key(unsigned char ch,int x, int y)
         case('r'):
             r = r-1;
             break;
+        case('M'):
+        case('m'):
+            animation = !animation;
+            break;
+
         default:
             break;
 
