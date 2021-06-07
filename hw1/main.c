@@ -46,11 +46,11 @@ const char* text[] = {"","2D","3D constant Z","3D","4D"};  //Dimension display t
 #define NUM_STEPS  (50000) //number of points
 double s = 10;
 double b = 2.6666;
-double r = 50;
+double r = 28;
 
 float coordinates[NUM_STEPS][3]; // to store 50000 XYZ coordinates
 
-
+int redGradient = 100, greenGradient = 100, blueGradient = 100;
 
 #define LEN 8192  //  Maximum amount of text
 /* function for text */
@@ -150,10 +150,10 @@ void generateLorenzPoints(void)
 // using it to generate R Y B values
 
 
-int returnRandoms(void)
+int returnRandoms(int low,int high)
 {
-    int low = -1000;
-    int high = 1000; //max unsigned 8bit value
+    if((low == 0) && (high == 0))
+        return 0;
     int num = (rand() % (high-low+1))+ low;
     //printf("num : %d\n",num);
     return num;
@@ -170,12 +170,9 @@ void generateLorenzGraph(void)
     glBegin(GL_LINE_STRIP); //connected vertices
    for (int i=0;i<NUM_STEPS;i++)
   	{
-        int R,G,B;
-        R = returnRandoms();
-        G = returnRandoms();
-        B = returnRandoms();
-		/*For adding shades of color*/
-		glColor3ub(R,G,B);
+        /*For adding shades of color*/
+		//printf("%d %d %d\n",redGradient,blueGradient,greenGradient);
+        glColor3ub(redGradient,greenGradient,blueGradient);
 		glVertex3f(coordinates[i][0],coordinates[i][1],coordinates[i][2]);
         glVertex3fv(coordinates[i]);
   	}
@@ -209,10 +206,18 @@ void display(void)
     generateLorenzGraph();
 
     /* print to window rotation angle */
-    glColor3f(1,1,1);
+    glColor3ub(redGradient,greenGradient,blueGradient);
     glWindowPos2i(5,5);
-    Print("Angle = %d",th);
+    Print("view angle %d %d, b = %f, r = %f, s = %f",th,ph,b,r,s);
 
+    glWindowPos2i(5,30);
+    Print("S to increase, s to decrease, B to increase, b to decrease, R to increase, r to decrease, D to go to default");
+
+    glWindowPos2i(5,60);
+    Print("Arrow keys to change view angle about X and Y axis");
+
+    glWindowPos2i(5,90);
+    Print("F1 to increase Red color, F2 to increase Green color, F3 to increase Blue color");
     /* Sanity check */
     ErrCheck("display"); 
     /* make scene visible */
@@ -226,7 +231,7 @@ void display(void)
 /* function called by GLUT when special keys are pressed*/
 void special(int key,int x, int y)
 {
-    switch (key)
+    switch(key)
     {
         case GLUT_KEY_RIGHT:
             th = (th + 5) % 360;
@@ -239,7 +244,50 @@ void special(int key,int x, int y)
             break;
         case GLUT_KEY_DOWN:
             ph = (ph - 5) % 360;
-            break;
+            break;   
+        case GLUT_KEY_F1:
+            
+            redGradient += 25;
+            if(redGradient >= 255)
+                redGradient = 255;
+            
+            greenGradient -= 5;
+            if(greenGradient <= 0)
+                greenGradient = 0;
+                
+            blueGradient -= 5;
+            if(blueGradient <= 0)
+                blueGradient = 0;
+            break; 
+
+        case GLUT_KEY_F2:
+            
+            greenGradient += 25;
+            if(greenGradient >= 255)
+                greenGradient = 255;
+            
+            redGradient -= 5;
+            if(redGradient <= 0)
+                redGradient = 0;
+                
+            blueGradient -= 5;
+            if(blueGradient <= 0)
+                blueGradient = 0;
+            break; 
+        case GLUT_KEY_F3:
+            
+            blueGradient += 25;
+            if(blueGradient >= 255)
+                blueGradient = 255;
+            
+            greenGradient -= 5;
+            if(greenGradient <= 0)
+                greenGradient = 0;
+                
+            redGradient -= 5;
+            if(redGradient <= 0)
+                redGradient = 0;
+            break; 
         default:
             break;
     }
@@ -247,6 +295,50 @@ void special(int key,int x, int y)
     /* update the display */
     glutPostRedisplay();
 }
+
+void key(unsigned char ch,int x, int y)
+{
+    switch(ch)
+    {
+        //ESC key
+        case(27):
+            exit(0);
+            break;
+        //Default
+        case('D'):
+        case('d'):
+           s = 10;
+           b = 2.6666;
+           r = 28;
+           th = 0;      //Azimuth of view angle
+           ph = 0;      //Elevation of view angle
+           break;
+        case('S'):
+            s = s+1;
+            break;
+        case('s'):
+            s = s-1;
+            break;
+        case('B'):
+            b = b+1;
+            break;
+        case('b'):
+            b = b-1;
+            break;
+        case('R'):
+            r = r+1;
+            break;
+        case('r'):
+            r = r-1;
+            break;
+        default:
+            break;
+
+    }
+    /* update the display */
+    glutPostRedisplay();
+}
+
 
 /* function called by GLUT when window is resized */
 void reshape(int width,int height)
@@ -301,13 +393,14 @@ int main(int argc,char* argv[])
        display scene 
        window resizing
        idle function
-       handle key presses
+       handle Special key presses
+       handle keyboard key presses
     */
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutIdleFunc(idle);
     glutSpecialFunc(special);
-
+    glutKeyboardFunc(key);
     /* enable z-buffer depth test */
     glEnable(GL_DEPTH_TEST);
 
