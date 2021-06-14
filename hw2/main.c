@@ -7,6 +7,8 @@
 /* Disclaimer : Most of the code is not my own work but referred from the example codes provided
    by the instructor in the class.
 
+   https://github.com/davidwparker/opengl-screencasts-1/blob/master/010.c
+   Used example 8 and example 9 from the lectures.
 */
 
 
@@ -31,26 +33,44 @@
 #ifndef RES
 #define RES 1
 #endif
-//Globals
 
+//Globals
 int th=0;          //  Azimuth of view angle
 int ph=0;          //  Elevation of view angle
-double zh=0;       //  Rotation of teapot
-int axes=1;        //  Display axes
-const char* text[] = {"Cuboids","Spheres","FlatPlane Outline","FlatPlane Fill","SolidPlane","Icosahedron DrawElements","Icosahedron DrawArrays","Icosahedron VBO","Scene"};
+double zh=0;       //  aeroplane flying
+
+int axes=0;        //  Display axes
+
+double dim = 5.0; /*dimension of orthogonal box*/
+
+const char* text[] = {"Orthogonal","Perspective","First Person"};
+
+int fov = 50; // field of view for perspective
+
+/* aspect ratio*/
+double asp = 1;
+
+/* parameters for first person view*/
+double fpX = -1.4;
+double fpZ = 4.8;
+
+int fpTh = 280; 
+int fpPh = 20;
+
+
+
+
 
 //  Cosine and Sine in degrees
 #define Cos(x) (cos((x)*3.1415927/180))
 #define Sin(x) (sin((x)*3.1415927/180))
 
 typedef enum{
-    CUBE = 0,
-    SPHERE,
-    FLATPLANE,
-    AIRPLANE,
-}shapes_t;
-
-shapes_t mode = CUBE;
+    ORTHOGONAL = 0,
+    PERSPECTIVE,
+    FIRSTPERSON,
+}MODE_T;
+MODE_T mode = ORTHOGONAL;
 
 #define LEN 8192  //  Maximum amount of text
 /* function for text */
@@ -137,25 +157,25 @@ static void cube(double x,double y,double z,
    //  Cube
    glBegin(GL_QUADS);
    //  Front
-   glColor3f(1,0,0);
+   glColor3ub(204,204,0);
    glVertex3f(-1,-1, 1);
    glVertex3f(+1,-1, 1);
    glVertex3f(+1,+1, 1);
    glVertex3f(-1,+1, 1);
    //  Back
-   glColor3f(0,0,1);
+   glColor3ub(204,204,0);
    glVertex3f(+1,-1,-1);
    glVertex3f(-1,-1,-1);
    glVertex3f(-1,+1,-1);
    glVertex3f(+1,+1,-1);
    //  Right
-   glColor3f(1,1,0);
+   glColor3ub(204,204,0);
    glVertex3f(+1,-1,+1);
    glVertex3f(+1,-1,-1);
    glVertex3f(+1,+1,-1);
    glVertex3f(+1,+1,+1);
    //  Left
-   glColor3f(0,1,0);
+   glColor3ub(204,204,0);
    glVertex3f(-1,-1,-1);
    glVertex3f(-1,-1,+1);
    glVertex3f(-1,+1,+1);
@@ -178,125 +198,159 @@ static void cube(double x,double y,double z,
    glPopMatrix();
 }
 
-/*
- *  Draw vertex in polar coordinates
- */
-static void Vertex(double th,double ph)
+static void drawRoof(double x, double y, double z,
+                    double dx, double dy, double dz,
+                    double th)
 {
-   glColor3f(Cos(th)*Cos(th) , Sin(ph)*Sin(ph) , Sin(th)*Sin(th));
-   glVertex3d(Sin(th)*Cos(ph) , Sin(ph) , Cos(th)*Cos(ph));
+    // Save transformation
+    glPushMatrix();
+
+    // Offset, scale
+    glTranslated(x,y,z);
+    glRotated(th,0,1,0);
+    glScaled(dx,dy,dz);
+
+    //front side
+    glBegin(GL_TRIANGLES);
+    glColor3ub(188,143,143);
+    glVertex3f(+1.5,0,1.5);
+    glVertex3f(-1.5,0,1.5); //symmetric about the x-axis
+    glVertex3f(0,+2, 0);
+    glEnd();
+
+    //back side
+    glBegin(GL_TRIANGLES);
+    glColor3ub(188,143,143);
+    glVertex3f(-1.5,0,-1.5);
+    glVertex3f(+1.5,0,-1.5); //symmetric about the x-axis
+    glVertex3f(0,+2, 0);
+    glEnd();
+
+     //left side
+    glBegin(GL_TRIANGLES);
+    glColor3ub(188,143,143);
+    glVertex3f(-1.5,0,+1.5);
+    glVertex3f(-1.5,0,-1.5); //symmetric about the z-axis
+    glVertex3f(0,+2, 0);
+    glEnd();
+
+     //right side
+    glBegin(GL_TRIANGLES);
+    glColor3ub(188,143,143);
+    glVertex3f(+1.5,0,+1.5);
+    glVertex3f(+1.5,0,-1.5); //symmetric about the z-axis
+    glVertex3f(0,+2, 0);
+    glEnd();
+
+     //  Undo transformations
+   glPopMatrix();
 }
 
-/*
- *  Draw a sphere (version 1)
- *     at (x,y,z)
- *     radius (r)
- */
-static void sphere1(double x,double y,double z,double r)
+
+static void house(double x,double y, double z, 
+                  double width, double height, double length,
+                  double th)
 {
-   const int d=15;
+    cube(x,y,z,width,height,length,th);
+    drawRoof(x,y+height,z,width,height/2,length+0.1,th);
+}
 
-   //  Save transformation
-   glPushMatrix();
-   //  Offset and scale
-   glTranslated(x,y,z);
-   glScaled(r,r,r);
 
-   //  South pole cap
-   glBegin(GL_TRIANGLE_FAN);
-   Vertex(0,-90);
-   for (int th=0;th<=360;th+=d)
-   {
-      Vertex(th,d-90);
-   }
-   glEnd();
+/* function to draw a cylinder
+https://www.youtube.com/watch?v=Kujd0RTsaAQ
+*/
+static void cylinder(double x, double y, double z,
+                     double radius, double height)
+{
+    const int delta_Deg = 5;
 
-   //  Latitude bands
-   for (int ph=d-90;ph<=90-2*d;ph+=d)
-   {
-      glBegin(GL_QUAD_STRIP);
-      for (int th=0;th<=360;th+=d)
-      {
-         Vertex(th,ph);
-         Vertex(th,ph+d);
-      }
-      glEnd();
-   }
+     // Save transformation
+    glPushMatrix();
 
-   //  North pole cap
-   glBegin(GL_TRIANGLE_FAN);
-   Vertex(0,90);
-   for (int th=0;th<=360;th+=d)
-   {
-      Vertex(th,90-d);
-   }
-   glEnd();
+    // Offset, scale
+    glTranslated(x,y,z);
+    glRotated(th,0,1,0);
+    glScaled(radius,height,radius);
+    /*sides*/
+    glBegin(GL_QUAD_STRIP);
 
-   //  Undo transformations
+    for(int j = 0; j <= 360; j+= delta_Deg)
+    {
+        glColor3ub(165,42,42); //brown
+        glVertex3f(Cos(j),+1,Sin(j));
+        glVertex3f(Cos(j),-1,Sin(j));
+    }
+    glEnd();
+
+    /* top and bottom circles */
+    /* reuse the texture on top and bottom */
+
+    for(int i = 1; i>= -1; i-=2)
+    {
+        glBegin(GL_TRIANGLE_FAN);
+        glColor3ub(165,42,42); //brown
+        glVertex3f(0,i,0);
+        for(int k = 0; k <= 360; k+= delta_Deg){
+            glColor3ub(165,42,42); //brown
+            glVertex3f(i*Cos(k),i,Sin(k));   
+        }
+        glEnd();
+    }    
+      //  Undo transformations
    glPopMatrix();
 }
 
 /*
- *  Draw a sphere (version 2)
- *     at (x,y,z)
- *     radius (r)
- */
-static void sphere2(double x,double y,double z,double r)
+* function to generate a cone
+https://www.youtube.com/watch?v=Kujd0RTsaAQ
+*/
+static void cone(double x, double y, double z, double height, double radius)
 {
-   const int d=15;
+      const int deg = 5;
+      int k;
+      glPushMatrix();
 
-   //  Save transformation
-   glPushMatrix();
-   //  Offset and scale
-   glTranslated(x,y,z);
-   glScaled(r,r,r);
+  /*  Transformation */
+  glTranslated(x,y,z);
+  glScaled(radius,height,radius);
+  glRotated(-90,1,0,0);
 
-   //  Latitude bands
-   for (int ph=-90;ph<90;ph+=d)
-   {
-      glBegin(GL_QUAD_STRIP);
-      for (int th=0;th<=360;th+=d)
-      {
-         Vertex(th,ph);
-         Vertex(th,ph+d);
-      }
-      glEnd();
-   }
+  /* sides */
+  glBegin(GL_TRIANGLES);
+  for (k=0;k<=360;k+=deg){
+    glColor3f(0.2,1.0,0.0);
+    glVertex3f(0,0,1);
+    glColor3f(0.2,1.0,0.0);
+    glVertex3f(Cos(k),Sin(k),0);
+    glColor3f(0.2,1.0,0.0);
+    glVertex3f(Cos(k+deg),Sin(k+deg),0);
+  }
+  glEnd();
 
-   //  Undo transformations
-   glPopMatrix();
+  /* bottom circle */ 
+  /* rotate back */
+  glRotated(90,1,0,0);
+  glBegin(GL_TRIANGLES);
+  glColor3f(0.3,1.0,0.0);
+  for (k=0;k<=360;k+=deg) {
+    glVertex3f(0,0,0);
+    glVertex3f(Cos(k),0,Sin(k));
+    glVertex3f(Cos(k+deg),0,Sin(k+deg));
+  }
+  glEnd();
+
+  glPopMatrix();
 }
 
-/*
- *  Draw a airplane shaped polygon at (x,y,z)
- */
-static void FlatPlane(int type,double x,double y,double z)
+
+static void tree(double x, double y, double z,
+                 double radius, double height)
 {
-   //  Save transformation
-   glPushMatrix();
-   //  Offset
-   glTranslated(x,y,z);
-   //  Fuselage and wings
-   glColor3f(1,1,0); 
-   glBegin(type);
-   glVertex2f( 1.0, 0.0);
-   glVertex2f( 0.8, 0.1);
-   glVertex2f( 0.0, 0.1);
-   glVertex2f(-1.0, 0.5);
-   glVertex2f(-1.0,-0.5);
-   glVertex2f( 0.0,-0.1);
-   glVertex2f( 0.8,-0.1);
-   glEnd();
-   //  Vertical tail
-   glColor3f(1,0,0);
-   glBegin(type);
-   glVertex3f(-1.0, 0.0,0.0);
-   glVertex3f(-1.0, 0.0,0.5);
-   glVertex3f(-0.5, 0.0,0.0);
-   glEnd();
-   //  Undo transformations
-   glPopMatrix();
+    cylinder(x,y,z,radius/5,height);
+    cone(x,y+height,z,radius,height);
 }
+
+
 
 /*
  *  Draw solid airplane
@@ -384,52 +438,112 @@ static void SolidPlane(double x,double y,double z,
    glPopMatrix();
 }
 
+void airplane()
+{
+    SolidPlane(1.5*Cos(zh),1.5,0.25*Sin(zh),
+    -Sin(zh),0,Cos(zh),
+    -0.30*Cos(zh),1,-0.45*Sin(zh));
+}
+void renderScene(void)
+{
+   
+    double dist  = 0.5;
+    house(0,0,0,0.3,0.5,0.5,0);
+    tree(dist, 0, dist, 0.1, 0.1);
+
+    house(-dist*3, 0, -dist*4, 0.2, 1, 0.3, 45);
+    tree(dist*1.5, 0, -dist, 0.1, 0.4);
+
+    house(dist*4, 0, 0, 0.5, 0.4, 0.6, 30);
+    tree(-dist*2, 0, dist*2, 0.2, 0.6);
+
+    house(dist*1.5, 0, -dist*4, 0.2, 1, 0.3, 20);
+    tree(dist, 0, -dist*2, 0.2, 0.5);
+
+    house(-dist*4, 0, dist*2, 0.3, 0.7, 0.4, 80);
+    tree(dist*2, 0, -dist, 0.1, 0.2);
+    
+}
+
+void projection(void)
+{
+    // inform OpenGL we want to manipulate the projection matrix
+    glMatrixMode(GL_PROJECTION);
+
+    //reset transformation - clears changes made earlier
+    glLoadIdentity();
+
+    if(mode == PERSPECTIVE)
+    {
+        gluPerspective(fov,asp,dim/8,8*dim);
+    }
+    else
+    {
+        glOrtho(-asp*dim,+asp*dim,-dim,+dim,-dim,+dim);
+    }
+    glMatrixMode(GL_MODELVIEW);
+
+    //reset transformation
+    glLoadIdentity();
+}
 
 /* function called by GLUT to display the scene */
 void display(void)
 {
+    double Ex, Ey, Ez;
     /* clear screen and Z-Buffer*/
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /* reset transformation - clears changes made earlier */
     glLoadIdentity();
 
-    /* rotation about X axis */
-    glRotated(ph,1,0,0);
-    
-    /* rotation about Y axis */
-    glRotated(th,0,1,0);
-
-   
     /* draw the axis */ 
     if(axes){
         drawXYZ();
     }
 
+    
+
     switch(mode)
     {
-        case CUBE:
-         cube(0,0,0 , 0.3,0.3,0.3 , 0);
-         cube(1,0,0 , 0.2,0.2,0.2 , 45);
-         cube(0,1,0 , 0.4,0.4,0.2 , 90);  
-         break;
-        
-        case SPHERE:
-         sphere1(0,0,0 , 0.4);
-         sphere1(1,0,0 , 0.2);
-         sphere2(0,1,0 , 0.2);
-         break;
-        
-        case FLATPLANE:
-         FlatPlane(GL_LINE_LOOP , 0,0,0);
-         break;
-        case AIRPLANE:
-         SolidPlane( 0, 0, 0 , 1,0,0 , 0, 1,0);
-         SolidPlane(-1, 1, 0 ,-1,0,0 , 0,-1,0);
-         SolidPlane(-1,-1, 0 ,-1,0,0 , 0, 1,0);
-         break;
+        case ORTHOGONAL:
+            glRotatef(ph,1,0,0);
+            glRotatef(th,0,1,0);
+            //  Display parameters
+            glColor3f(1.0,1.0,1.0);
+            glWindowPos2i(5,5);
+            Print("Angle= x: %d,y :%d   Projection=%s",th,ph,text[mode]);
+            break;
+        case PERSPECTIVE:
+            Ex = -2*dim*Sin(th)*Cos(ph);
+            Ey = +2*dim*Sin(ph);
+            Ez = +2*dim*Cos(th)*Cos(ph);
+            /* camera/eye position*/
+            gluLookAt(Ex,Ey,Ez,0,0,0,0,Cos(ph),0);
+            glColor3f(1.0,1.0,1.0);
+            glWindowPos2i(5,5);
+            Print("Angle= x: %d,y :%d Dim:%.1f FOV = %d Projection=%s",th,ph,dim,fov,text[mode]);
+            break;
+        case FIRSTPERSON:
+            
+            
+            // imitate first person movement
+            gluLookAt(fpX,-1.4,fpZ,Cos(fpTh)+fpX,Sin(fpPh)-1.4,Sin(fpTh)+fpZ,
+                    0,1,0);
+            glColor3f(1.0,1.0,1.0);
+            glWindowPos2i(5,5);
+            Print("Angle=%d,%d  Position=%.1f,%.1f   Projection=%s",fpTh,fpPh,fpX,fpZ,"First Person");
+            break;
+        default:
+            break;
     }
     
+    glPushMatrix();
+    
+    airplane();
+    renderScene();
+    
+    glPopMatrix();
 
    
     /* Sanity check */
@@ -445,53 +559,126 @@ void display(void)
 /* function called by GLUT when special keys are pressed*/
 void special(int key,int x, int y)
 {
-    switch(key)
-    {
-        case GLUT_KEY_RIGHT:
-            th = (th + 5) % 360;
-            break;
-        case GLUT_KEY_LEFT:
-            th = (th - 5) % 360;
-            break;
-        case GLUT_KEY_UP:
-            ph = (ph + 5) % 360;
-            break;
-        case GLUT_KEY_DOWN:
-            ph = (ph - 5) % 360;
-            break;   
+    if(mode != FIRSTPERSON){
+        switch(key)
+        {
+            case GLUT_KEY_RIGHT:
+                th = (th + 5) % 360;
+                break;
+            case GLUT_KEY_LEFT:
+                th = (th - 5) % 360;
+                break;
+            case GLUT_KEY_UP:
+                ph = (ph + 5) % 360;
+                break;
+            case GLUT_KEY_DOWN:
+                ph = (ph - 5) % 360;
+                break;   
+        }
     }
+    else
+    {
+        switch(key)
+        {
+            case GLUT_KEY_RIGHT:
+                fpTh = (th + 5) % 360;
+                break;
+            case GLUT_KEY_LEFT:
+                fpTh = (th - 5) % 360;
+                break;
+            case GLUT_KEY_UP:
+                fpPh = (ph + 5);
+                break;
+            case GLUT_KEY_DOWN:
+                fpPh = (ph - 5);
+                break;   
+            if(fpPh > 90)
+                fpPh = 90;
+            if(fpPh < -90)
+                fpPh = -90;
 
+
+        } 
+    }
+    projection();
     /* update the display */
     glutPostRedisplay();
 }
 
 void key(unsigned char ch,int x, int y)
 {
-    switch(ch)
+   //  Exit on ESC
+  if (ch == 27)
+  {
+    exit(0);
+  }
+  else if (ch == 'm' || ch == 'M')
+  {
+    mode += 1;
+    mode %= 3;
+  }
+  
+  if (mode != 2) //mode not first person
+  {
+    //  Reset view angle
+    if (ch == '0')
     {
-        //ESC key
-        case(27):
-            exit(0);
-            break;
-        //Default
-        case('D'):
-        case('d'):
-           th = 0;      //Azimuth of view angle
-           ph = 0;      //Elevation of view angle
-           break;
-        case('A'):
-        case('a'):
-            axes = 1 - axes;
-            break;
-        case('M'):
-        case('m'):
-            mode = (mode+1)%4;
-            break;
-
-        default:
-            break;
-
+      th = ph = 0;
     }
+    //  Change field of view angle
+    else if (ch == '-' && ch>1)
+    {
+      fov--;
+    }
+    else if (ch == '+' && ch<179)
+    {
+      fov++;
+    }
+    else if(ch == 'a' || ch == 'A')
+    {
+        axes = 1 - axes;
+    }
+  }
+  else //first person
+  {
+    if (ch == '0')
+    {
+        fpX = -1.4;
+        fpZ = 4.8;
+        fpTh = 180; 
+        fpPh = 20;
+    }
+    else if (ch == 'w')
+    {
+      fpX += 0.2*Cos(fpTh);
+      fpZ += 0.2*Sin(fpTh);
+    }
+    else if (ch == 's')
+    {
+      fpX -= 0.2*Cos(fpTh);
+      fpZ -= 0.2*Sin(fpTh);
+    }
+    else if (ch == 'd')
+    {
+      fpZ += 0.1*Cos(fpTh);
+      fpX += -0.1*Sin(fpTh);
+    }
+    else if (ch == 'a')
+    {
+      fpZ -= 0.1*Cos(fpTh);
+      fpX -= -0.1*Sin(fpTh);
+    }
+    //  Change field of view angle
+    else if (ch == '-' && ch>1)
+    {
+      dim -= 0.1;
+    }
+    else if (ch == '+' && ch<179)
+    {
+      dim += 0.1;
+    }
+  }
+    projection();
     /* update the display */
     glutPostRedisplay();
 }
