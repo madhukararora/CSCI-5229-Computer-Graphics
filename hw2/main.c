@@ -6,7 +6,7 @@
 
 /* Disclaimer : Most of the code is not my own work but referred from the example codes provided
    by the instructor in the class.
-
+   https://thepentamollisproject.blogspot.com/2018/02/setting-up-first-person-camera-in.html
    https://github.com/davidwparker/opengl-screencasts-1/blob/master/010.c
    Used example 8 and example 9 from the lectures.
 */

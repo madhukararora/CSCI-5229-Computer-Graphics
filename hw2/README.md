@@ -34,10 +34,11 @@ OS Requirements : Ubuntu 20.04 with Open GL installed and gcc C compiler.
 
 ***w , a, s, d*** : Move around the scene in First Person Mode. 
 
+***+*** : Increase the Field of View in Orthogonal/Perspective Mode  or Increase the window dimension in First Person Mode.
 
-
+***-*** : Decrease the Field of View in Orthogonal/Perspective Mode  or Decrease the window dimension in First Person Mode.
 
 
 ### Time taken to complete the assignment 
 
-It took about 4 days for me to complete this assignment. Most of the time was spent understanding the basics of OpenGL. 
+It took about 2 days for me to complete this assignment. 
