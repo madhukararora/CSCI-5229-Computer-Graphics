@@ -53,7 +53,7 @@ MODE_T mode = ORTHOGONAL;
 int light     =   1;  // Lighting
 int one       =   1;  // Unit value
 int distance  =   3;  // Light distance
-int inc       =  10;  // Ball increment
+int inc       =   5;  // Ball increment
 int smooth    =   1;  // Smooth/Flat shading
 int local     =   0;  // Local Viewer Model
 int emission  =   0;  // Emission intensity (%)
@@ -159,6 +159,14 @@ static void cube(double x,double y,double z,
                  double dx,double dy,double dz,
                  double th)
 {
+   
+   //  Set specular color to white
+   float white[] = {1,1,1,1};
+   float black[] = {0,0,0,1};
+   glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
+   glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white);
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black);
+   
    //  Save transformation
    glPushMatrix();
    //  Offset
@@ -169,36 +177,42 @@ static void cube(double x,double y,double z,
    glBegin(GL_QUADS);
    //  Front
    glColor3ub(255,0,0);
+   glNormal3f( 0, 0, 1);
    glVertex3f(-1,-1, 1);
    glVertex3f(+1,-1, 1);
    glVertex3f(+1,+1, 1);
    glVertex3f(-1,+1, 1);
    //  Back
    glColor3ub(0,255,0);
+   glNormal3f( 0, 0,-1);
    glVertex3f(+1,-1,-1);
    glVertex3f(-1,-1,-1);
    glVertex3f(-1,+1,-1);
    glVertex3f(+1,+1,-1);
    //  Right
    glColor3ub(0,0,255);
+   glNormal3f(+1, 0, 0);
    glVertex3f(+1,-1,+1);
    glVertex3f(+1,-1,-1);
    glVertex3f(+1,+1,-1);
    glVertex3f(+1,+1,+1);
    //  Left
    glColor3ub(125,0,255);
+   glNormal3f(-1, 0, 0);
    glVertex3f(-1,-1,-1);
    glVertex3f(-1,-1,+1);
    glVertex3f(-1,+1,+1);
    glVertex3f(-1,+1,-1);
    //  Top
    glColor3f(0,1,1);
+   glNormal3f( 0,+1, 0);
    glVertex3f(-1,+1,+1);
    glVertex3f(+1,+1,+1);
    glVertex3f(+1,+1,-1);
    glVertex3f(-1,+1,-1);
    //  Bottom
    glColor3f(1,0,1);
+   glNormal3f( 0,-1, 0);
    glVertex3f(-1,-1,-1);
    glVertex3f(+1,-1,-1);
    glVertex3f(+1,-1,+1);
@@ -209,10 +223,45 @@ static void cube(double x,double y,double z,
    glPopMatrix();
 }
 
+
+
+/*
+* Draw triangle
+*/
+static void triangle(vtx A, vtx B, vtx C)
+{
+     //  Planar vector 0
+   float dx0 = A.x-B.x;
+   float dy0 = A.y-B.y;
+   float dz0 = A.z-B.z;
+   //  Planar vector 1
+   float dx1 = C.x-A.x;
+   float dy1 = C.y-A.y;
+   float dz1 = C.z-A.z;
+   //  Normal
+   float Nx = dy0*dz1 - dy1*dz0;
+   float Ny = dz0*dx1 - dz1*dx0;
+   float Nz = dx0*dy1 - dx1*dy0;
+   //  Draw triangle
+   glNormal3f(Nx,Ny,Nz);
+   glBegin(GL_TRIANGLES);
+   glVertex3f(A.x,A.y,A.z);
+   glVertex3f(B.x,B.y,B.z);
+   glVertex3f(C.x,C.y,C.z);
+   glEnd();
+}
+
+
+
+
+/* function to draw a roof on top of the house*/
+
 static void drawRoof(double x, double y, double z,
                     double dx, double dy, double dz,
                     double th)
 {
+    
+    vtx A,B,C;
     // Save transformation
     glPushMatrix();
 
@@ -222,38 +271,60 @@ static void drawRoof(double x, double y, double z,
     glScaled(dx,dy,dz);
 
     //front side
-    glBegin(GL_TRIANGLES);
+    // glBegin(GL_TRIANGLES);
+    // glColor3ub(188,143,143);
+    // glVertex3f(+1.0,0,1.0);
+    // glVertex3f(-1.0,0,1.0); //symmetric about the x-axis
+    // glVertex3f(0,+1.5, 0);
+    // glEnd();
+    A.x = 1.0; A.y = 0; A.z = +1.0;
+    B.x = -1.0; B.y = 0; B.z = +1.0;
+    C.x = 0; C.y = +1.5; C.z = 0;
     glColor3ub(188,143,143);
-    glVertex3f(+1.0,0,1.0);
-    glVertex3f(-1.0,0,1.0); //symmetric about the x-axis
-    glVertex3f(0,+1.5, 0);
-    glEnd();
+    triangle(A,B,C);
 
     //back side
-    glBegin(GL_TRIANGLES);
+    // glBegin(GL_TRIANGLES);
+    // glColor3ub(188,143,143);
+    // glVertex3f(-1.0,0,-1.0);
+    // glVertex3f(+1.0,0,-1.0); //symmetric about the x-axis
+    // glVertex3f(0,+1.5, 0);
+    // glEnd();
+    A.x = -1.0; A.y = 0; A.z = -1.0;
+    B.x = +1.0; B.y = 0; B.z = -1.0;
+    C.x = 0; C.y = +1.5; C.z = 0;
     glColor3ub(188,143,143);
-    glVertex3f(-1.0,0,-1.0);
-    glVertex3f(+1.0,0,-1.0); //symmetric about the x-axis
-    glVertex3f(0,+1.5, 0);
-    glEnd();
+    triangle(A,B,C);
 
      //left side
-    glBegin(GL_TRIANGLES);
+    // glBegin(GL_TRIANGLES);
+    // glColor3ub(188,143,143);
+    // glVertex3f(-1.0,0,+1.0);
+    // glVertex3f(-1.0,0,-1.0); //symmetric about the z-axis
+    // glVertex3f(0,+1.5, 0);
+    // glEnd();
+    A.x = -1.0; A.y = 0; A.z = +1.0;
+    B.x = -1.0; B.y = 0; B.z = -1.0;
+    C.x = 0; C.y = +1.5; C.z = 0;
     glColor3ub(188,143,143);
-    glVertex3f(-1.0,0,+1.0);
-    glVertex3f(-1.0,0,-1.0); //symmetric about the z-axis
-    glVertex3f(0,+1.5, 0);
-    glEnd();
+    triangle(A,B,C);
 
      //right side
-    glBegin(GL_TRIANGLES);
+    // glBegin(GL_TRIANGLES);
+    // glColor3ub(188,143,143);
+    // glVertex3f(+1.0,0,+1.0);
+    // glVertex3f(+1.0,0,-1.0); //symmetric about the z-axis
+    // glVertex3f(0,+1.5, 0);
+    // glEnd();
+    A.x = +1.0; A.y = 0; A.z = +1.0;
+    B.x = +1.0; B.y = 0; B.z = -1.0;
+    C.x = 0; C.y = +1.5; C.z = 0;
     glColor3ub(188,143,143);
-    glVertex3f(+1.0,0,+1.0);
-    glVertex3f(+1.0,0,-1.0); //symmetric about the z-axis
-    glVertex3f(0,+1.5, 0);
-    glEnd();
+    triangle(A,B,C);
 
-     //  Undo transformations
+
+   /* to do : seal the bottom*/ 
+   //  Undo transformations
    glPopMatrix();
 }
 
@@ -288,6 +359,11 @@ static void cylinder(double x, double y, double z,
     for(int j = 0; j <= 360; j+= delta_Deg)
     {
         glColor3ub(165,42,42); //brown
+        float brown[] = {0.64,0.16,0.16,1};
+        float emit[] = {0.0,0.0,0.01*emission};
+        glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
+        glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,brown);
+        glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emit);
         glVertex3f(Cos(j),+1,Sin(j));
         glVertex3f(Cos(j),-1,Sin(j));
     }
@@ -303,6 +379,7 @@ static void cylinder(double x, double y, double z,
         glVertex3f(0,i,0);
         for(int k = 0; k <= 360; k+= delta_Deg){
             glColor3ub(165,42,42); //brown
+            glNormal3d(Sin(th),0,Cos(th));
             glVertex3f(i*Cos(k),i,Sin(k));   
         }
         glEnd();
@@ -317,36 +394,54 @@ https://www.youtube.com/watch?v=Kujd0RTsaAQ
 */
 static void cone(double x, double y, double z, double height, double radius)
 {
-      const int deg = 5;
-      int k;
-      glPushMatrix();
+    
+    vtx A,B,C;
+    const int deg = 5;
+    int k;
+    glPushMatrix();
 
-  /*  Transformation */
-  glTranslated(x,y,z);
-  glScaled(radius,height,radius);
-  glRotated(-90,1,0,0);
+    /*  Transformation */
+    glTranslated(x,y,z);
+    glScalef(radius,height,radius);
+    glRotated(-90,1,0,0);
 
-  /* sides */
-  glBegin(GL_TRIANGLES);
-  for (k=0;k<=360;k+=deg){
-    glColor3f(0.2,1.0,0.0);
-    glVertex3f(0,0,1);
-    glColor3f(0.2,1.0,0.0);
-    glVertex3f(Cos(k),Sin(k),0);
-    glColor3f(0.2,1.0,0.0);
-    glVertex3f(Cos(k+deg),Sin(k+deg),0);
-  }
-  glEnd();
+    /* sides */
+    // glBegin(GL_TRIANGLES);
+    for (k=0;k<=360;k+=deg){
+        glColor3f(0.2,1.0,0.0);
+        float green[] = {0.2,1.0,0,1.0};
+        float emit[] = {0.0,0.0,0.01*emission,1.0};
+        glMaterialf(GL_FRONT,GL_SHININESS, shiny);
+        glMaterialfv(GL_FRONT,GL_SPECULAR, green);
+        glMaterialfv(GL_FRONT,GL_EMISSION, emit);
+        //glVertex3f(0,0,1);
+        A.x = 0; A.y = 0, A.z = 1;
+        // glVertex3f(Cos(k),Sin(k),0);
+        B.x = Cos(k); B.y = Sin(k); B.z = 0;
+        //glVertex3f(Cos(k+deg),Sin(k+deg),0);
+        C.x = Cos(k+deg); C.y = Sin(k+deg); C.z = 0;
+        triangle(A,B,C);
+    }
+    glEnd();
 
   /* bottom circle */ 
   /* rotate back */
   glRotated(90,1,0,0);
-  glBegin(GL_TRIANGLES);
+//   glBegin(GL_TRIANGLES);
   glColor3f(0.3,1.0,0.0);
   for (k=0;k<=360;k+=deg) {
-    glVertex3f(0,0,0);
-    glVertex3f(Cos(k),0,Sin(k));
-    glVertex3f(Cos(k+deg),0,Sin(k+deg));
+    float green[] = {0.2,1.0,0,1.0};
+    float emit[] = {0.0,0.0,0.01*emission,1.0};
+    glMaterialf(GL_FRONT,GL_SHININESS, shiny);
+    glMaterialfv(GL_FRONT,GL_SPECULAR, green);
+    glMaterialfv(GL_FRONT,GL_EMISSION, emit);  
+    // glVertex3f(0,0,0);
+    // glVertex3f(Cos(k),0,Sin(k));
+    // glVertex3f(Cos(k+deg),0,Sin(k+deg));
+    A.x = 0; A.y = 0; A.z = 0;
+    B.x = Cos(k); B.y = 0; B.z = Sin(k);
+    C.x = Cos(k+deg); C.y = 0; C.z = Sin(k+deg);
+    triangle(A,B,C);
   }
   glEnd();
 
@@ -549,7 +644,7 @@ void display(void)
         default:
             break;
     }
-    if(light)
+    if(light) //taken from example 13 provided by Instructor.
     {
         //translate intensity to color vectors
         float Ambient[] = {0.01*ambient,0.01*ambient,0.01*ambient,1.0};
@@ -561,7 +656,7 @@ void display(void)
 
         // draw light position as ball (still no lighting here)
         glColor3f(1,1,1);
-        ball(Position[0],Position[1],Position[2],0.3);
+        ball(Position[0],Position[1],Position[2],0.1);
 
         //OpenGL should normalize normal vectors
         glEnable(GL_NORMALIZE);
@@ -603,11 +698,12 @@ void display(void)
     if(axes){
         drawXYZ();
     }
+    
+    
     /* Sanity check */
     ErrCheck("display"); 
     /* make scene visible */
     glFlush();
-
     /* swap double buffer */
     glutSwapBuffers();
 
@@ -775,7 +871,6 @@ int main(int argc,char* argv[])
     glutSpecialFunc(special);
     glutKeyboardFunc(key);
     
-
     /* pass control for GLUT for events */
     glutMainLoop();
 
