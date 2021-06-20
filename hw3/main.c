@@ -19,12 +19,14 @@
 //Globals
 int th=0;          //  Azimuth of view angle
 int ph=0;          //  Elevation of view angle
-int axes=0;        //  Display axes
+int axes=1;        //  Display axes
 int fov = 58;      // field of view for perspective
-double zh=0;       //  aeroplane flying
+//double zh=0;       //  aeroplane flying
 /* aspect ratio*/
 double asp = 1;
 double dim = 2.6; /*dimension of orthogonal box*/
+
+double len = 2.0; //length of axes
 /* parameters for first person view*/
 
 /* where the camera is looking*/
@@ -37,10 +39,8 @@ double EX = 0;
 double EY = 0;
 double EZ = 6;
 
-
+/* different modes*/
 const char* text[] = {"Orthogonal","Perspective","First Person"};
-
-
 
 typedef enum{
     ORTHOGONAL = 0,
@@ -49,10 +49,76 @@ typedef enum{
 }MODE_T;
 MODE_T mode = ORTHOGONAL;
 
+/* lighting parameters */
+int light     =   1;  // Lighting
+int one       =   1;  // Unit value
+int distance  =   3;  // Light distance
+int inc       =  10;  // Ball increment
+int smooth    =   1;  // Smooth/Flat shading
+int local     =   0;  // Local Viewer Model
+int emission  =   0;  // Emission intensity (%)
+int ambient   =  10;  // Ambient intensity (%)
+int diffuse   =  50;  // Diffuse intensity (%)
+int specular  =   0;  // Specular intensity (%)
+int shininess =   0;  // Shininess (power of two)
+float shiny   =   1;  // Shininess (value)
+int zh        =  90;  // Light azimuth
+float ylight  =   0;  // Elevation of light
+typedef struct {float x,y,z;} vtx;
+typedef struct {int A,B,C;} tri;
+#define n 500
+vtx is[n];
 
 
 
 
+/*
+ *  Draw vertex in polar coordinates with normal
+ */
+static void Vertex(double th,double ph)
+{
+   double x = Sin(th)*Cos(ph);
+   double y = Cos(th)*Cos(ph);
+   double z =         Sin(ph);
+   //  For a sphere at the origin, the position
+   //  and normal vectors are the same
+   glNormal3d(x,y,z);
+   glVertex3d(x,y,z);
+}
+
+/*
+ *  Draw a ball
+ *     at (x,y,z)
+ *     radius (r)
+ */
+static void ball(double x,double y,double z,double r)
+{
+   //  Save transformation
+   glPushMatrix();
+   //  Offset, scale and rotate
+   glTranslated(x,y,z);
+   glScaled(r,r,r);
+   //  White ball with yellow specular
+   float yellow[]   = {1.0,1.0,0.0,1.0};
+   float Emission[] = {0.0,0.0,0.01*emission,1.0};
+   glColor3f(1,1,1);
+   glMaterialf(GL_FRONT,GL_SHININESS,shiny);
+   glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
+   glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
+   //  Bands of latitude
+   for (int ph=-90;ph<90;ph+=inc)
+   {
+      glBegin(GL_QUAD_STRIP);
+      for (int th=0;th<=360;th+=2*inc)
+      {
+         Vertex(th,ph);
+         Vertex(th,ph+inc);
+      }
+      glEnd();
+   }
+   //  Undo transofrmations
+   glPopMatrix();
+}
 
 
 /* convenience function to draw the X-Y-Z axes*/
@@ -62,19 +128,19 @@ void drawXYZ(void)
     glColor3f(1.0,1.0,1.0); //color - white
     glBegin(GL_LINES);
     glVertex3d(0,0,0);
-    glVertex3d(1,0,0); //X-axis
+    glVertex3d(len,0,0); //X-axis
     glVertex3d(0,0,0);
-    glVertex3d(0,1,0); //Y-axis
+    glVertex3d(0,len,0); //Y-axis
     glVertex3d(0,0,0);
-    glVertex3d(0,0,1); //Z-axis
+    glVertex3d(0,0,len); //Z-axis
     glEnd();
 
     //Label Axes
-    glRasterPos3d(1,0,0);
+    glRasterPos3d(len,0,0);
     Print("X");
-    glRasterPos3d(0,1,0);
+    glRasterPos3d(0,len,0);
     Print("Y");
-    glRasterPos3d(0,0,1);
+    glRasterPos3d(0,0,len);
     Print("Z");
     
     /* update display */
@@ -441,16 +507,13 @@ void display(void)
     /* clear screen and Z-Buffer*/
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    /* enable z-buffer depth test */
+    glEnable(GL_DEPTH_TEST);
+
     /* reset transformation - clears changes made earlier */
     glLoadIdentity();
 
-    /* draw the axis */ 
-    if(axes){
-        drawXYZ();
-    }
-
-    
-
+   
     switch(mode)
     {
         case ORTHOGONAL:
@@ -486,7 +549,47 @@ void display(void)
         default:
             break;
     }
-    
+    if(light)
+    {
+        //translate intensity to color vectors
+        float Ambient[] = {0.01*ambient,0.01*ambient,0.01*ambient,1.0};
+        float Diffuse[] = {0.01*diffuse,0.01*diffuse,0.01*diffuse,1.0};
+        float Specular[] = {0.01*specular,0.01*specular,0.01*specular,1.0};
+
+        // light position
+        float Position[] = {distance*Cos(zh),ylight,distance*Sin(zh),1.0};
+
+        // draw light position as ball (still no lighting here)
+        glColor3f(1,1,1);
+        ball(Position[0],Position[1],Position[2],0.3);
+
+        //OpenGL should normalize normal vectors
+        glEnable(GL_NORMALIZE);
+
+        //Enable lighting
+        glEnable(GL_LIGHTING);
+
+        //location of viewer for specular calculations
+        glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER,local);
+
+        // glColor sets ambient and diffuse color materials
+        glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
+        glEnable(GL_COLOR_MATERIAL);
+
+        //enable light 0
+        glEnable(GL_LIGHT0);
+
+        //set ambient, diffuse, specular components and postion of light 0
+        glLightfv(GL_LIGHT0,GL_AMBIENT,Ambient);
+        glLightfv(GL_LIGHT0,GL_DIFFUSE,Diffuse);
+        glLightfv(GL_LIGHT0,GL_SPECULAR,Specular);
+        glLightfv(GL_LIGHT0,GL_POSITION,Position);
+        
+    }
+    else
+        glDisable(GL_LIGHTING);
+
+
     glPushMatrix();
     
     airplane();
@@ -494,7 +597,12 @@ void display(void)
     
     glPopMatrix();
 
-   
+    
+    /* draw the axis */
+    glDisable(GL_LIGHTING); 
+    if(axes){
+        drawXYZ();
+    }
     /* Sanity check */
     ErrCheck("display"); 
     /* make scene visible */
@@ -648,7 +756,7 @@ int main(int argc,char* argv[])
     /* Request 960 x 840 pixel window */
     glutInitWindowSize(960,840);
     /* Create Window */
-    glutCreateWindow("Madhukar's Scene Creation");
+    glutCreateWindow("Madhukar's Lighting and Texture");
 
 #ifdef USEGLEW
    //  Initialize GLEW
@@ -666,8 +774,7 @@ int main(int argc,char* argv[])
     glutIdleFunc(idle);
     glutSpecialFunc(special);
     glutKeyboardFunc(key);
-    /* enable z-buffer depth test */
-    glEnable(GL_DEPTH_TEST);
+    
 
     /* pass control for GLUT for events */
     glutMainLoop();
