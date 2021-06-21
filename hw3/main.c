@@ -66,6 +66,11 @@ float ylight  =   0;  // Elevation of light
 typedef struct {float x,y,z;} vtx;
 
 
+/* texture parameters*/
+unsigned int wallTexture;
+unsigned int roofTexture;
+unsigned int leafTexture;
+unsigned int woodTexture;
 
 /*
  *  Draw vertex in polar coordinates with normal
@@ -171,47 +176,47 @@ static void cube(double x,double y,double z,
    //  Cube
    glBegin(GL_QUADS);
    //  Front
-   glColor3ub(255,0,0);
+//    glColor3ub(255,0,0);
    glNormal3f( 0, 0, 1);
-   glVertex3f(-1,-1, 1);
-   glVertex3f(+1,-1, 1);
-   glVertex3f(+1,+1, 1);
-   glVertex3f(-1,+1, 1);
+   glTexCoord2f(0,0);glVertex3f(-1,-1, 1);
+   glTexCoord2f(1,0);glVertex3f(+1,-1, 1);
+   glTexCoord2f(1,1);glVertex3f(+1,+1, 1);
+   glTexCoord2f(0,1);glVertex3f(-1,+1, 1);
    //  Back
-   glColor3ub(0,255,0);
+//   glColor3ub(0,255,0);
    glNormal3f( 0, 0,-1);
-   glVertex3f(+1,-1,-1);
-   glVertex3f(-1,-1,-1);
-   glVertex3f(-1,+1,-1);
-   glVertex3f(+1,+1,-1);
+   glTexCoord2f(0,0);glVertex3f(+1,-1,-1);
+   glTexCoord2f(1,0);glVertex3f(-1,-1,-1);
+   glTexCoord2f(1,1);glVertex3f(-1,+1,-1);
+   glTexCoord2f(0,1);glVertex3f(+1,+1,-1);
    //  Right
-   glColor3ub(0,0,255);
+// glColor3ub(0,0,255);
    glNormal3f(+1, 0, 0);
-   glVertex3f(+1,-1,+1);
-   glVertex3f(+1,-1,-1);
-   glVertex3f(+1,+1,-1);
-   glVertex3f(+1,+1,+1);
+   glTexCoord2f(0,0);glVertex3f(+1,-1,+1);
+   glTexCoord2f(1,0);glVertex3f(+1,-1,-1);
+   glTexCoord2f(1,1);glVertex3f(+1,+1,-1);
+   glTexCoord2f(0,1);glVertex3f(+1,+1,+1);
    //  Left
-   glColor3ub(125,0,255);
+//   glColor3ub(125,0,255);
    glNormal3f(-1, 0, 0);
-   glVertex3f(-1,-1,-1);
-   glVertex3f(-1,-1,+1);
-   glVertex3f(-1,+1,+1);
-   glVertex3f(-1,+1,-1);
+   glTexCoord2f(0,0);glVertex3f(-1,-1,-1);
+   glTexCoord2f(1,0);glVertex3f(-1,-1,+1);
+   glTexCoord2f(1,1);glVertex3f(-1,+1,+1);
+   glTexCoord2f(0,1);glVertex3f(-1,+1,-1);
    //  Top
-   glColor3f(0,1,1);
+//    glColor3f(0,1,1);
    glNormal3f( 0,+1, 0);
-   glVertex3f(-1,+1,+1);
-   glVertex3f(+1,+1,+1);
-   glVertex3f(+1,+1,-1);
-   glVertex3f(-1,+1,-1);
+   glTexCoord2f(0,0);glVertex3f(-1,+1,+1);
+   glTexCoord2f(1,0);glVertex3f(+1,+1,+1);
+   glTexCoord2f(1,1);glVertex3f(+1,+1,-1);
+   glTexCoord2f(0,1);glVertex3f(-1,+1,-1);
    //  Bottom
-   glColor3f(1,0,1);
+//    glColor3f(1,0,1);
    glNormal3f( 0,-1, 0);
-   glVertex3f(-1,-1,-1);
-   glVertex3f(+1,-1,-1);
-   glVertex3f(+1,-1,+1);
-   glVertex3f(-1,-1,+1);
+   glTexCoord2f(0,0);glVertex3f(-1,-1,-1);
+   glTexCoord2f(1,0);glVertex3f(+1,-1,-1);
+   glTexCoord2f(1,1);glVertex3f(+1,-1,+1);
+   glTexCoord2f(0,1);glVertex3f(-1,-1,+1);
    //  End
    glEnd();
    //  Undo transformations
@@ -237,12 +242,19 @@ static void triangle(vtx A, vtx B, vtx C)
    float Nx = dy0*dz1 - dy1*dz0;
    float Ny = dz0*dx1 - dz1*dx0;
    float Nz = dx0*dy1 - dx1*dy0;
+ 
+   double len = sqrt((Nx*Nx)+(Ny*Ny)+(Nz*Nz));
+   float x,y,z;
+   x = Nx/len;
+   y = Ny/len;
+   z = Nz/len;
+
    //  Draw triangle
-   glNormal3f(Nx,Ny,Nz);
+   glNormal3f(x,y,z);
    glBegin(GL_TRIANGLES);
-   glVertex3f(A.x,A.y,A.z);
-   glVertex3f(B.x,B.y,B.z);
-   glVertex3f(C.x,C.y,C.z);
+   glTexCoord2f(0,0);glVertex3f(A.x,A.y,A.z);
+   glTexCoord2f(0.5,0);glVertex3f(B.x,B.y,B.z);
+   glTexCoord2f(0,1.5);glVertex3f(C.x,C.y,C.z);
    glEnd();
 }
 
@@ -275,7 +287,7 @@ static void drawRoof(double x, double y, double z,
     A.x = 1.0; A.y = 0; A.z = +1.0;
     B.x = -1.0; B.y = 0; B.z = +1.0;
     C.x = 0; C.y = +1.5; C.z = 0;
-    glColor3ub(188,143,143);
+    
     triangle(A,B,C);
 
     //back side
@@ -288,7 +300,7 @@ static void drawRoof(double x, double y, double z,
     A.x = -1.0; A.y = 0; A.z = -1.0;
     B.x = +1.0; B.y = 0; B.z = -1.0;
     C.x = 0; C.y = +1.5; C.z = 0;
-    glColor3ub(188,143,143);
+    
     triangle(A,B,C);
 
      //left side
@@ -301,7 +313,7 @@ static void drawRoof(double x, double y, double z,
     A.x = -1.0; A.y = 0; A.z = +1.0;
     B.x = -1.0; B.y = 0; B.z = -1.0;
     C.x = 0; C.y = +1.5; C.z = 0;
-    glColor3ub(188,143,143);
+    
     triangle(A,B,C);
 
      //right side
@@ -314,7 +326,7 @@ static void drawRoof(double x, double y, double z,
     A.x = +1.0; A.y = 0; A.z = +1.0;
     B.x = +1.0; B.y = 0; B.z = -1.0;
     C.x = 0; C.y = +1.5; C.z = 0;
-    glColor3ub(188,143,143);
+    
     triangle(A,B,C);
 
 
@@ -328,8 +340,15 @@ static void house(double x,double y, double z,
                   double width, double height, double length,
                   double th)
 {
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,wallTexture);
     cube(x,y,z,width,height,length,th);
+    glDisable(GL_TEXTURE_2D);
+    
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,roofTexture);
     drawRoof(x,y+height,z,width,height/2,length+0.1,th);
+    glDisable(GL_TEXTURE_2D);
 }
 
 
@@ -353,14 +372,15 @@ static void cylinder(double x, double y, double z,
 
     for(int j = 0; j <= 360; j+= delta_Deg)
     {
-        glColor3ub(165,42,42); //brown
+        
         float brown[] = {0.64,0.16,0.16,1};
         float emit[] = {0.0,0.0,0.01*emission,1};
         glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
         glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,brown);
         glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emit);
-        glVertex3f(Cos(j),+1,Sin(j));
-        glVertex3f(Cos(j),-1,Sin(j));
+        float X = j/(float)360;
+        glTexCoord2f(X,0);glVertex3f(Cos(j),+1,Sin(j));
+        glTexCoord2f(X,1);glVertex3f(Cos(j),-1,Sin(j));
     }
     glEnd();
 
@@ -370,11 +390,11 @@ static void cylinder(double x, double y, double z,
     for(int i = 1; i>= -1; i-=2)
     {
         glBegin(GL_TRIANGLE_FAN);
-        glColor3ub(165,42,42); //brown
         glVertex3f(0,i,0);
         for(int k = 0; k <= 360; k+= delta_Deg){
-            glColor3ub(165,42,42); //brown
+            //glColor3ub(165,42,42); //brown
             glNormal3d(Sin(th),0,Cos(th));
+            glTexCoord2f(i*Cos(k),Sin(k));
             glVertex3f(i*Cos(k),i,Sin(k));   
         }
         glEnd();
@@ -404,7 +424,6 @@ static void cone(double x, double y, double z, double height, double radius)
     
     glVertex3f(0,0,0);
     for (k=0;k<=360;k+=deg){
-        glColor3f(0.2,1.0,0.0);
         float green[] = {0,1.0,0,1.0};
         float emit[] = {0.0,0.0,0.01*emission,1.0};
         glMaterialf(GL_FRONT,GL_SHININESS, shiny);
@@ -425,7 +444,6 @@ static void cone(double x, double y, double z, double height, double radius)
   /* bottom circle */ 
   /* rotate back */
   glRotated(90,1,0,0);
-  glColor3f(0.3,1.0,0.0);
   for (k=0;k<=360;k+=deg) {
     float green[] = {0.0,1.0,0,1.0};
     float emit[] = {0.0,0.0,0.01*emission,1.0};
@@ -449,8 +467,17 @@ static void cone(double x, double y, double z, double height, double radius)
 static void tree(double x, double y, double z,
                  double radius, double height)
 {
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,woodTexture);
     cylinder(x,y,z,radius/5,height);
+    glDisable(GL_TEXTURE_2D);
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,leafTexture);
     cone(x,y+height/2,z,height,radius);
+    glDisable(GL_TEXTURE_2D);
+    
+    
 }
 
 
@@ -461,18 +488,28 @@ void renderScene(void)
    
     //double dist  = 0.5;
     house(-1,-1,-1,0.3,0.3,0.3,0);
-    tree(-0.5,-1,-1, 0.2, 0.3);
-    tree(0,-1,-1, 0.2, 0.3);
+    tree(-2,-1,-1, 0.2, 0.3);
+    tree(0.1,-1,-1, 0.2, 0.3);
      
-    house(-1,-1,-2.2,0.4,0.4,0.4,60);
+    house(-1,-1,-5,0.4,0.4,0.4,60);
     tree(-0.3,-1,-2, 0.2, 0.3);
+    
+
+    tree(+0.2,-1,-1, 0.2, 0.3);
+    tree(+0.6,-1,-1, 0.2, 0.3);
+
     tree(+0.2,-1,-2, 0.2, 0.3);
+    tree(+0.6,-1,-2, 0.2, 0.3);
 
-    house(+1,-1,-1,0.3,0.3,0.3,90);
+
+    tree(+1.0,-1,-1, 0.2, 0.3);
     tree(+1.5,-1,-1, 0.2, 0.3);
-    tree(+2,-1,-1, 0.2, 0.3);
 
-    house(+1,-1,-2,0.3,0.3,0.3,45);
+    house(+3,-1,-1,0.3,0.3,0.3,90);
+    tree(+2.0,-1,-1, 0.2, 0.3);
+    tree(+2.5,-1,-1, 0.2, 0.3);
+
+    house(+3,-1,-2,0.3,0.3,0.3,45);
     tree(+1.8,-1,-2, 0.2, 0.3);
     tree(+2.2,-1,-2, 0.2, 0.3);
     
@@ -839,7 +876,7 @@ int main(int argc,char* argv[])
     /* Request 960 x 840 pixel window */
     glutInitWindowSize(960,840);
     /* Create Window */
-    glutCreateWindow("Madhukar's Lighting and Texture");
+    glutCreateWindow("Madhukar's Cabin in the Woods");
 
 #ifdef USEGLEW
    //  Initialize GLEW
@@ -857,6 +894,12 @@ int main(int argc,char* argv[])
     glutIdleFunc(idle);
     glutSpecialFunc(special);
     glutKeyboardFunc(key);
+
+
+    wallTexture = LoadTexBMP("images/housewall.bmp");
+    roofTexture = LoadTexBMP("images/houseroof.bmp");
+    woodTexture = LoadTexBMP("images/wood_1.bmp");
+    leafTexture = LoadTexBMP("images/treeleaf.bmp");
     
     /* pass control for GLUT for events */
     glutMainLoop();
