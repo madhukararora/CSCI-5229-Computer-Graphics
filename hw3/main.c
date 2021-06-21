@@ -8,7 +8,6 @@
    by the instructor in the class.
    https://thepentamollisproject.blogspot.com/2018/02/setting-up-first-person-camera-in.html
    https://github.com/davidwparker/opengl-screencasts-1/blob/master/010.c
-   Used example 8 and example 9 from the lectures.
    https://stackoverflow.com/questions/5717654/glulookat-explanation
 */
 
@@ -21,7 +20,6 @@ int th=0;          //  Azimuth of view angle
 int ph=0;          //  Elevation of view angle
 int axes=1;        //  Display axes
 int fov = 58;      // field of view for perspective
-//double zh=0;       //  aeroplane flying
 /* aspect ratio*/
 double asp = 1;
 double dim = 2.6; /*dimension of orthogonal box*/
@@ -50,6 +48,7 @@ typedef enum{
 MODE_T mode = ORTHOGONAL;
 
 /* lighting parameters */
+int move      =   1;  // move light 
 int light     =   1;  // Lighting
 int one       =   1;  // Unit value
 int distance  =   3;  // Light distance
@@ -65,10 +64,6 @@ float shiny   =   1;  // Shininess (value)
 int zh        =  90;  // Light azimuth
 float ylight  =   0;  // Elevation of light
 typedef struct {float x,y,z;} vtx;
-typedef struct {int A,B,C;} tri;
-#define n 500
-vtx is[n];
-
 
 
 
@@ -96,8 +91,8 @@ static void ball(double x,double y,double z,double r)
    //  Save transformation
    glPushMatrix();
    //  Offset, scale and rotate
-   glTranslated(x,y,z);
-   glScaled(r,r,r);
+   glTranslatef(x,y,z);
+   glScalef(r,r,r);
    //  White ball with yellow specular
    float yellow[]   = {1.0,1.0,0.0,1.0};
    float Emission[] = {0.0,0.0,0.01*emission,1.0};
@@ -127,20 +122,20 @@ void drawXYZ(void)
     glPointSize(10);
     glColor3f(1.0,1.0,1.0); //color - white
     glBegin(GL_LINES);
-    glVertex3d(0,0,0);
-    glVertex3d(len,0,0); //X-axis
-    glVertex3d(0,0,0);
-    glVertex3d(0,len,0); //Y-axis
-    glVertex3d(0,0,0);
-    glVertex3d(0,0,len); //Z-axis
+    glVertex3d(-1,-1,-1);
+    glVertex3d(len,-1,-1); //X-axis
+    glVertex3d(-1,-1,-1);
+    glVertex3d(-1,len,-1); //Y-axis
+    glVertex3d(-1,-1,-1);
+    glVertex3d(-1,-1,len); //Z-axis
     glEnd();
 
     //Label Axes
-    glRasterPos3d(len,0,0);
+    glRasterPos3d(len,-1,-1);
     Print("X");
-    glRasterPos3d(0,len,0);
+    glRasterPos3d(-1,len,-1);
     Print("Y");
-    glRasterPos3d(0,0,len);
+    glRasterPos3d(-1,-1,len);
     Print("Z");
     
     /* update display */
@@ -323,7 +318,7 @@ static void drawRoof(double x, double y, double z,
     triangle(A,B,C);
 
 
-   /* to do : seal the bottom*/ 
+  
    //  Undo transformations
    glPopMatrix();
 }
@@ -360,7 +355,7 @@ static void cylinder(double x, double y, double z,
     {
         glColor3ub(165,42,42); //brown
         float brown[] = {0.64,0.16,0.16,1};
-        float emit[] = {0.0,0.0,0.01*emission};
+        float emit[] = {0.0,0.0,0.01*emission,1};
         glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
         glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,brown);
         glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,emit);
@@ -406,31 +401,33 @@ static void cone(double x, double y, double z, double height, double radius)
     glRotated(-90,1,0,0);
 
     /* sides */
-    // glBegin(GL_TRIANGLES);
+    
+    glVertex3f(0,0,0);
     for (k=0;k<=360;k+=deg){
         glColor3f(0.2,1.0,0.0);
-        float green[] = {0.2,1.0,0,1.0};
+        float green[] = {0,1.0,0,1.0};
         float emit[] = {0.0,0.0,0.01*emission,1.0};
         glMaterialf(GL_FRONT,GL_SHININESS, shiny);
         glMaterialfv(GL_FRONT,GL_SPECULAR, green);
         glMaterialfv(GL_FRONT,GL_EMISSION, emit);
-        //glVertex3f(0,0,1);
+        // //glVertex3f(0,0,1);
         A.x = 0; A.y = 0, A.z = 1;
-        // glVertex3f(Cos(k),Sin(k),0);
+        // // glVertex3f(Cos(k),Sin(k),0);
         B.x = Cos(k); B.y = Sin(k); B.z = 0;
-        //glVertex3f(Cos(k+deg),Sin(k+deg),0);
+        // //glVertex3f(Cos(k+deg),Sin(k+deg),0);
         C.x = Cos(k+deg); C.y = Sin(k+deg); C.z = 0;
         triangle(A,B,C);
+       
     }
-    glEnd();
+    
+ 
 
   /* bottom circle */ 
   /* rotate back */
   glRotated(90,1,0,0);
-//   glBegin(GL_TRIANGLES);
   glColor3f(0.3,1.0,0.0);
   for (k=0;k<=360;k+=deg) {
-    float green[] = {0.2,1.0,0,1.0};
+    float green[] = {0.0,1.0,0,1.0};
     float emit[] = {0.0,0.0,0.01*emission,1.0};
     glMaterialf(GL_FRONT,GL_SHININESS, shiny);
     glMaterialfv(GL_FRONT,GL_SPECULAR, green);
@@ -443,7 +440,7 @@ static void cone(double x, double y, double z, double height, double radius)
     C.x = Cos(k+deg); C.y = 0; C.z = Sin(k+deg);
     triangle(A,B,C);
   }
-  glEnd();
+ 
 
   glPopMatrix();
 }
@@ -452,104 +449,13 @@ static void cone(double x, double y, double z, double height, double radius)
 static void tree(double x, double y, double z,
                  double radius, double height)
 {
-    cylinder(x,y,z,radius/4,height);
-    cone(x,y+height,z,height/3,radius);
+    cylinder(x,y,z,radius/5,height);
+    cone(x,y+height/2,z,height,radius);
 }
 
 
 
-/*
- *  Draw solid airplane
- *    at (x,y,z)
- *    nose towards (dx,dy,dz)
- *    up towards (ux,uy,uz)
- */
-static void SolidPlane(double x,double y,double z,
-                       double dx,double dy,double dz,
-                       double ux,double uy, double uz)
-{
-   // Dimensions used to size airplane
-   const double wid=0.05;
-   const double nose=+0.50;
-   const double cone= 0.20;
-   const double wing= 0.00;
-   const double strk=-0.20;
-   const double tail=-0.50;
-   //  Unit vector in direction of flght
-   double D0 = sqrt(dx*dx+dy*dy+dz*dz);
-   double X0 = dx/D0;
-   double Y0 = dy/D0;
-   double Z0 = dz/D0;
-   //  Unit vector in "up" direction
-   double D1 = sqrt(ux*ux+uy*uy+uz*uz);
-   double X1 = ux/D1;
-   double Y1 = uy/D1;
-   double Z1 = uz/D1;
-   //  Cross product gives the third vector
-   double X2 = Y0*Z1-Y1*Z0;
-   double Y2 = Z0*X1-Z1*X0;
-   double Z2 = X0*Y1-X1*Y0;
-   //  Rotation matrix
-   double mat[16];
-   mat[0] = X0;   mat[4] = X1;   mat[ 8] = X2;   mat[12] = 0;
-   mat[1] = Y0;   mat[5] = Y1;   mat[ 9] = Y2;   mat[13] = 0;
-   mat[2] = Z0;   mat[6] = Z1;   mat[10] = Z2;   mat[14] = 0;
-   mat[3] =  0;   mat[7] =  0;   mat[11] =  0;   mat[15] = 1;
 
-   //  Save current transforms
-   glPushMatrix();
-   //  Offset, scale and rotate
-   glTranslated(x,y,z);
-   glMultMatrixd(mat);
-   //  Nose
-   glColor3f(0,0,1);
-   glBegin(GL_TRIANGLE_FAN);
-   glVertex3d(nose, 0.0, 0.0);
-   for (int th=0;th<=360;th+=30)
-      glVertex3d(cone,wid*Cos(th),wid*Sin(th));
-   glEnd();
-   //  Fuselage
-   glBegin(GL_QUAD_STRIP);
-   for (int th=0;th<=360;th+=30)
-   {
-      glVertex3d(cone,wid*Cos(th),wid*Sin(th));
-      glVertex3d(tail,wid*Cos(th),wid*Sin(th));
-   }
-   glEnd();
-   // Tailpipe
-   glBegin(GL_TRIANGLE_FAN);
-   glVertex3d(tail, 0.0, 0.0);
-   for (int th=0;th<=360;th+=30)
-      glVertex3d(tail,wid*Cos(th),wid*Sin(th));
-   glEnd();
-   //  Wings
-   glColor3f(1,1,0);
-   glBegin(GL_TRIANGLES);
-   glVertex3d(wing, 0.0, wid);
-   glVertex3d(tail, 0.0, wid);
-   glVertex3d(tail, 0.0, 0.5);
-
-   glVertex3d(wing, 0.0,-wid);
-   glVertex3d(tail, 0.0,-wid);
-   glVertex3d(tail, 0.0,-0.5);
-   glEnd();
-   //  Vertical tail
-   glColor3f(1,0,0);
-   glBegin(GL_TRIANGLES);
-   glVertex3d(strk, 0.0, 0.0);
-   glVertex3d(tail, 0.3, 0.0);
-   glVertex3d(tail, 0.0, 0.0);
-   glEnd();
-   //  Undo transformations
-   glPopMatrix();
-}
-
-void airplane()
-{
-    SolidPlane(1.5*Cos(zh),1.5,0.25*Sin(zh),
-    -Sin(zh),0,Cos(zh),
-    -0.30*Cos(zh),1,-0.45*Sin(zh));
-}
 void renderScene(void)
 {
    
@@ -679,6 +585,11 @@ void display(void)
         glLightfv(GL_LIGHT0,GL_DIFFUSE,Diffuse);
         glLightfv(GL_LIGHT0,GL_SPECULAR,Specular);
         glLightfv(GL_LIGHT0,GL_POSITION,Position);
+
+      glWindowPos2i(5,45);
+      Print("Model=%s LocalViewer=%s Distance=%d Elevation=%.1f",smooth?"Smooth":"Flat",local?"On":"Off",distance,ylight);
+      glWindowPos2i(5,25);
+      Print("Ambient=%d  Diffuse=%d Specular=%d Emission=%d Shininess=%.0f",ambient,diffuse,specular,emission,shiny);
         
     }
     else
@@ -686,10 +597,7 @@ void display(void)
 
 
     glPushMatrix();
-    
-    airplane();
     renderScene();
-    
     glPopMatrix();
 
     
@@ -709,24 +617,68 @@ void display(void)
 
 }
 
+/* function called by GLUT when idle */
+void idle(void) //DO NOT MODIFY
+{
+    /* get elapsed time in seconds */
+    double t = glutGet(GLUT_ELAPSED_TIME)/1000.0;
+
+    /* spin angle - 90 degrees/second */
+    zh = fmod(90*t,360);
+
+    /* update display */
+    glutPostRedisplay();
+}
+
 /* function called by GLUT when special keys are pressed*/
 void special(int key,int x, int y)
 {
     
     switch(key)
     {
+            //  Right arrow key - increase angle by 5 degrees
             case GLUT_KEY_RIGHT:
                 th = (th + 5) % 360;
                 break;
+            //  Left arrow key - decrease angle by 5 degrees
             case GLUT_KEY_LEFT:
                 th = (th - 5) % 360;
                 break;
+            //  Up arrow key - increase elevation by 5 degrees
             case GLUT_KEY_UP:
                 ph = (ph + 5) % 360;
                 break;
+            //  Down arrow key - decrease elevation by 5 degrees
             case GLUT_KEY_DOWN:
                 ph = (ph - 5) % 360;
-                break;   
+                break; 
+            //  PageUp key - increase dim
+            case GLUT_KEY_PAGE_UP:
+                dim+= 0.1;
+                break;
+            //  PageDown key - decrease dim
+            case GLUT_KEY_PAGE_DOWN:
+                dim -= 0.1;
+                break;
+            // Smooth color model
+            case GLUT_KEY_F1:
+                smooth = 1-smooth;
+                break;
+            // Local Viewer
+            case GLUT_KEY_F2:
+                local = 1-local;
+                break;
+            //change light distance
+            case GLUT_KEY_F3:
+                distance = (distance==1)?3:1;
+                break;
+            // toggle ball increment
+            case GLUT_KEY_F8:
+                inc = (inc==10)?3:10;
+                break;
+            default:
+                break;
+
     }
     
    
@@ -742,12 +694,66 @@ void key(unsigned char ch,int x, int y)
   {
     exit(0);
   }
-  else if (ch == 'm' || ch == 'M')
+  else if(ch == 'x' || ch == 'X') // toggle Axes
   {
-    mode += 1;
-    mode %= 3;
+      axes = 1-axes;
   }
-  
+  else if (ch == 'm' || ch == 'M') // change between different modes
+  {
+    mode = (mode+1)%3;
+  }
+  else if (ch == 'l' || ch == 'L') // toggle light on-off
+  {
+    light = 1-light;
+  }
+  else if(ch == 'p' || ch == 'P') // toggle light movement
+  {
+      move = 1-move;
+  }
+  //move light
+  else if(ch == '<')
+  {
+      zh += 1;
+  }
+  else if(ch == '>')
+  {
+      zh -= 1;
+  }
+  //light elevation
+  else if(ch == '[')
+  {
+      ylight -= 0.1;
+  }
+  else if(ch == ']')
+  {
+      ylight += 0.1;
+  }
+  //  Ambient level
+  else if (ch=='a' && ambient>0)
+      ambient -= 5;
+  else if (ch=='A' && ambient<100)
+      ambient += 5;
+      //  Diffuse level
+  else if (ch=='d' && diffuse>0)
+      diffuse -= 5;
+  else if (ch=='D' && diffuse<100)
+      diffuse += 5;
+      //  Specular level
+  else if (ch=='v' && specular>0)
+      specular -= 5;
+  else if (ch=='V' && specular<100)
+      specular += 5;
+  //  Emission level
+   //  Emission level
+   else if (ch=='e' && emission>0)
+      emission -= 5;
+   else if (ch=='E' && emission<100)
+      emission += 5;       
+    //  Shininess level
+   else if (ch=='b' && shininess>-1)
+      shininess -= 1;
+   else if (ch=='B' && shininess<7)
+      shininess += 1;
   if (mode != FIRSTPERSON) //mode not first person
   {
     //  Reset view angle
@@ -763,10 +769,6 @@ void key(unsigned char ch,int x, int y)
     else if (ch == '+' && ch<179)
     {
       fov++;
-    }
-    else if(ch == 'a' || ch == 'A')
-    {
-        axes = 1 - axes;
     }
   }
   else //first person
@@ -792,18 +794,12 @@ void key(unsigned char ch,int x, int y)
       EX -= MX * 0.1;
       EZ -= MZ * 0.1;
     }
-    //  Change field of view angle
-    else if (ch == '-' && ch>1)
-    {
-      dim -= 0.1;
-    }
-    else if (ch == '+' && ch<179)
-    {
-      dim += 0.1;
-    }
   }
+    //  Translate shininess power to value (-1 => 0)
+    shiny = shininess<0 ? 0 : pow(2.0,shininess);
     projection();
     /* update the display */
+    glutIdleFunc(move?idle:NULL);
     glutPostRedisplay();
 }
 
@@ -811,37 +807,28 @@ void key(unsigned char ch,int x, int y)
 /* function called by GLUT when window is resized */
 void reshape(int width,int height) //DO NOT MODIFY
 {
-   //  Set viewport as entire window
-   glViewport(0,0, RES*width,RES*height);
-   //  Select projection matrix
-   glMatrixMode(GL_PROJECTION);
-   //  Set projection to identity
-   glLoadIdentity();
-   //  Orthogonal projection:  unit cube adjusted for aspect ratio
-   const double dim = 2.5;
-   double asp = (height>0) ? (double)width/height : 1;
-   glOrtho(-asp*dim,+asp*dim, -dim,+dim, -dim,+dim);
-   //  Select model view matrix
-   glMatrixMode(GL_MODELVIEW);
-   //  Set model view to identity
-   glLoadIdentity();
+    //  Ratio of the width to the height of the window
+  asp = (height>0) ? (double)width/height : 1;
+  //  Set the viewport to the entire window
+  glViewport(0,0, width,height);
+  //  Tell OpenGL we want to manipulate the projection matrix
+  glMatrixMode(GL_PROJECTION);
+  //  Undo previous transformations
+  glLoadIdentity();
+  //  Switch to manipulating the model matrix
+  glMatrixMode(GL_MODELVIEW);
+  //  Undo previous transformations
+  glLoadIdentity();
+  //  Set the viewport to the entire window
+  glViewport(0,0, width,height);
+  //  Set projection
+  projection();
 }
  
-/* function called by GLUT when idle */
-void idle(void) //DO NOT MODIFY
-{
-    /* get elapsed time in seconds */
-    double t = glutGet(GLUT_ELAPSED_TIME)/1000.0;
-
-    /* spin angle - 90 degrees/second */
-    zh = fmod(90*t,360);
-
-    /* update display */
-    glutPostRedisplay();
-}
 
 
-int main(int argc,char* argv[])
+
+int main(int argc,char* argv[]) 
 {
     /* initialize OpenGL Utility Tool */
     glutInit(&argc,argv);
