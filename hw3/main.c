@@ -243,14 +243,9 @@ static void triangle(vtx A, vtx B, vtx C)
    float Ny = dz0*dx1 - dz1*dx0;
    float Nz = dx0*dy1 - dx1*dy0;
  
-   double len = sqrt((Nx*Nx)+(Ny*Ny)+(Nz*Nz));
-   float x,y,z;
-   x = Nx/len;
-   y = Ny/len;
-   z = Nz/len;
-
+ 
    //  Draw triangle
-   glNormal3f(x,y,z);
+   glNormal3f(Nx,Ny,Nz);
    glBegin(GL_TRIANGLES);
    glTexCoord2f(0,0);glVertex3f(A.x,A.y,A.z);
    glTexCoord2f(0.5,0);glVertex3f(B.x,B.y,B.z);
@@ -323,8 +318,8 @@ static void drawRoof(double x, double y, double z,
     // glVertex3f(+1.0,0,-1.0); //symmetric about the z-axis
     // glVertex3f(0,+1.5, 0);
     // glEnd();
-    A.x = +1.0; A.y = 0; A.z = +1.0;
-    B.x = +1.0; B.y = 0; B.z = -1.0;
+    A.x = +1.0; A.y = 0; A.z = -1.0;
+    B.x = +1.0; B.y = 0; B.z = +1.0;
     C.x = 0; C.y = +1.5; C.z = 0;
     
     triangle(A,B,C);
@@ -410,7 +405,7 @@ https://www.youtube.com/watch?v=Kujd0RTsaAQ
 static void cone(double x, double y, double z, double height, double radius)
 {
     
-    vtx A,B,C;
+    //vtx A,B,C;
     const int deg = 5;
     int k;
     glPushMatrix();
@@ -422,43 +417,39 @@ static void cone(double x, double y, double z, double height, double radius)
 
     /* sides */
     
-    glVertex3f(0,0,0);
+    glBegin(GL_TRIANGLES);
     for (k=0;k<=360;k+=deg){
         float green[] = {0,1.0,0,1.0};
-        float emit[] = {0.0,0.0,0.01*emission,1.0};
+        float emit[] = {0.0,0.1*emission,0,1.0};
         glMaterialf(GL_FRONT,GL_SHININESS, shiny);
         glMaterialfv(GL_FRONT,GL_SPECULAR, green);
         glMaterialfv(GL_FRONT,GL_EMISSION, emit);
-        // //glVertex3f(0,0,1);
-        A.x = 0; A.y = 0, A.z = 1;
-        // // glVertex3f(Cos(k),Sin(k),0);
-        B.x = Cos(k); B.y = Sin(k); B.z = 0;
-        // //glVertex3f(Cos(k+deg),Sin(k+deg),0);
-        C.x = Cos(k+deg); C.y = Sin(k+deg); C.z = 0;
-        triangle(A,B,C);
-       
+        glNormal3f(radius*Cos(k),height,radius*Sin(k));
+        glTexCoord2f(Sin(k),Cos(k));
+        glVertex3f(0,0,1);
+        glVertex3f(Cos(k),Sin(k),0);
+        glVertex3f(Cos(k+deg),Sin(k+deg),0);       
     }
-    
+    glEnd();
  
 
   /* bottom circle */ 
   /* rotate back */
   glRotated(90,1,0,0);
+  glBegin(GL_TRIANGLES);
   for (k=0;k<=360;k+=deg) {
     float green[] = {0.0,1.0,0,1.0};
-    float emit[] = {0.0,0.0,0.01*emission,1.0};
+    float emit[] = {0.0,0.01*emission,0.0,1.0};
     glMaterialf(GL_FRONT,GL_SHININESS, shiny);
     glMaterialfv(GL_FRONT,GL_SPECULAR, green);
-    glMaterialfv(GL_FRONT,GL_EMISSION, emit);  
-    // glVertex3f(0,0,0);
-    // glVertex3f(Cos(k),0,Sin(k));
-    // glVertex3f(Cos(k+deg),0,Sin(k+deg));
-    A.x = 0; A.y = 0; A.z = 0;
-    B.x = Cos(k); B.y = 0; B.z = Sin(k);
-    C.x = Cos(k+deg); C.y = 0; C.z = Sin(k+deg);
-    triangle(A,B,C);
+    glMaterialfv(GL_FRONT,GL_EMISSION, emit); 
+    glNormal3f(radius*Cos(k),height,radius*Sin(k)); 
+    glTexCoord2f(Sin(k),Cos(k));
+    glVertex3f(0,0,0);
+    glVertex3f(Cos(k),0,Sin(k));
+    glVertex3f(Cos(k+deg),0,Sin(k+deg));
   }
- 
+  glEnd();
 
   glPopMatrix();
 }
