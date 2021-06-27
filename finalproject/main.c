@@ -7,7 +7,7 @@
 /*
 * Disclaimer:
   I've borrowed most of the source code from the references provided in the class and other resource online.
-  Links to referred material:
+  Links to referred material are attached with the code segment. 
 
 */
 
@@ -17,38 +17,47 @@
 #include <time.h>
 #include <limits.h>
 #include <float.h>
+#include <stdbool.h>
+
 
 //Globals
-int th = 0;          //  Azimuth of view angle
-int ph = 30;          //  Elevation of view angle
-int axes=1;        //  Display axes
-int fov = 58;      //  field of view for perspective
+int th = 0;             //  Azimuth of view angle
+int ph = 0;            //  Elevation of view angle
+int axes=1;           //  Display axes
+int fov = 58;        //  field of view for perspective
 
 double asp = 1;    //  aspect ratio
-double dim = 10;  // dimension of orthogonal box
+double dim = 5.2;  // dimension of orthogonal box
 double len = 2.0;  //length of axes
 
 //parameters for first person view
-
+int th_FP = 0;
+int ph_FP = 0;
 /* where the camera is looking*/
-double MX = 0;
-double MY = 0;
-double MZ = 0;
+double MX = 0.0;
+double MY = 0.0;
+double MZ = 0.0;
 
 /* camera position*/
 double EX = 0; 
-double EY = -2.0;
-double EZ = -2.0;
+double EY = 0.7;
+double EZ = 5.2;
 
 /* different modes*/
 const char* text[] = {"Orthogonal","Perspective","First Person"};
 
-typedef enum{ ORTHOGONAL = 0, PERSPECTIVE,FIRSTPERSON}MODE_T;
-MODE_T mode = ORTHOGONAL;
+typedef enum{ ORTHOGONAL = 0, PERSPECTIVE,FIRSTPERSON}MODES_T;
+MODES_T mode = ORTHOGONAL;
+
+
+
+
+typedef enum{DIRTROAD, GRASS, }OBJECTS_T;
+OBJECTS_T object;
 
 // lighting parameters 
 int move      =   1;  // move light 
-int light     =   1;  // Lighting
+int light     =   0;  // Lighting
 int one       =   1;  // Unit value
 int distance  =   3;  // Light distance
 int inc       =   5;  // Ball increment
@@ -81,319 +90,76 @@ unsigned int woodTexture;
 
 
 
+// Mountain 
+
+double tolerance = 0.015;
+double lightPos[3] = {50,35,1.95};
+int Level = 5;
 
 
+double randomNormal (double mu, double sigma)
+{
+  double sum = 0;
+  for(int i = 0; i < 12; i++)
+    sum = sum + (double)rand()/RAND_MAX;
+  sum -= 6;
+  return sigma*sum + mu;
+}
 
-// //           Math
-
-// typedef enum { NOTALLOWED, MOUNTAIN, TREE, ISLAND, BIGMTN, STEM, LEAF, 
-//                MOUNTAIN_MAT, WATER_MAT, LEAF_MAT, TREE_MAT, STEMANDLEAVES,
-//                AXES } DisplayLists;
-
-
-// #define MAXLEVEL 8
-// #define NUMRANDS 191
-// int Level = 4;
-
-
-//   /* normalizes v */
-// void normalize(GLfloat v[3])
-// {
-//   GLfloat d = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
-
-//   if (d == 0)
-//     fprintf(stderr, "Zero length vector in normalize\n");
-//   else{
-//     v[0] /= d; 
-//     v[1] /= d; 
-//     v[2] /= d;
-//   }
-// }
-
-// float xzlength(float v1[3], float v2[3])
-// {
-//   return sqrt((v1[0] - v2[0])*(v1[0] - v2[0]) +
-//               (v1[2] - v2[2])*(v1[2] - v2[2]));
-// }
-//   /* calculates a normalized crossproduct to v1, v2 */
-// void ncrossprod(float v1[3], float v2[3], float cp[3])
-// {
-//   cp[0] = v1[1]*v2[2] - v1[2]*v2[1];
-//   cp[1] = v1[2]*v2[0] - v1[0]*v2[2];
-//   cp[2] = v1[0]*v2[1] - v1[1]*v2[0];
-//   normalize(cp);
-// }
-
-
-//   /* calculates normal to the triangle designated by v1, v2, v3 */
-// void triagnormal(float v1[3], float v2[3], float v3[3], float norm[3])
-// {
-//   float vec1[3], vec2[3];
-
-//   vec1[0] = v3[0] - v1[0];  vec2[0] = v2[0] - v1[0];
-//   vec1[1] = v3[1] - v1[1];  vec2[1] = v2[1] - v1[1];
-//   vec1[2] = v3[2] - v1[2];  vec2[2] = v2[2] - v1[2];
-
-//   ncrossprod(vec2, vec1, norm);
-// }
-
-
-// float xzslope(float v1[3], float v2[3])
-// {
-//   return ((v1[0] != v2[0]) ? ((v1[2] - v2[2]) / (v1[0] - v2[0]))
-// 	                   : FLT_MAX);
-// }
-
-
-// //                           MOUNTAIN STUFF
-// GLfloat DispFactor[MAXLEVEL];  /* Array of what to multiply random number
-// 				  by for a given level to get midpoint
-// 				  displacement  */
-
-// GLfloat DispBias[MAXLEVEL];  /* Array of what to add to random number
-// 				before multiplying it by DispFactor */
-
-
-// float RandTable[NUMRANDS];  /* hash table of random numbers so we can
-// 			       raise the same midpoints by the same amount */ 
-
-
-
-//          /* The following are for permitting an edge of a moutain to be   */
-//          /* pegged so it won't be displaced up or down.  This makes it    */
-//          /* easier to setup scenes and makes a single moutain look better */
-
-// GLfloat Verts[3][3],    /* Vertices of outside edges of mountain */
-//         Slopes[3];      /* Slopes between these outside edges */
-// int     Pegged[3];      /* Is this edge pegged or not */   
-
-
-
-
-
-//  /*
-//   * Comes up with a new table of random numbers [0,1)
-//   */
-// void InitRandTable(unsigned int seed)
-// {
-//   int i;
-
-//   srand48((long) seed);
-//   for (i = 0; i < NUMRANDS; i++)
-//     RandTable[i] = drand48() - 0.5;
-// }
-
-//   /* calculate midpoint and displace it if required */
-// void Midpoint(GLfloat mid[3], GLfloat v1[3], GLfloat v2[3],
-// 	      int edge, int level)
-// {
-//   unsigned hash;
-
-//   mid[0] = (v1[0] + v2[0]) / 2;
-//   mid[1] = (v1[1] + v2[1]) / 2;
-//   mid[2] = (v1[2] + v2[2]) / 2;
-//   if (!Pegged[edge] || (fabs(xzslope(Verts[edge], mid) 
-//                         - Slopes[edge]) > 0.00001)) {
-//     srand48((int)((v1[0]+v2[0])*23344));
-//     hash = drand48() * 7334334;
-//     srand48((int)((v2[2]+v1[2])*43433));
-//     hash = (unsigned)(drand48() * 634344 + hash) % NUMRANDS;
-//     mid[1] += ((RandTable[hash] + DispBias[level]) * DispFactor[level]);
-//   }
-// }
-
-
-//   /*
-//    * Recursive moutain drawing routine -- from lecture with addition of 
-//    * allowing an edge to be pegged.  This function requires the above
-//    * globals to be set, as well as the Level global for fractal level 
-//    */
-// void FMR(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], int level)
-// {
-//   printf("levl %d\n",level);
-//   if (level == Level) {
-//     GLfloat norm[3];
-
-//     triagnormal(v1, v2, v3, norm);
-//     glNormal3fv(norm);
-//     glVertex3fv(v1);
-//     glVertex3fv(v2);
-//     glVertex3fv(v3);
-
-//   } else {
-//     GLfloat m1[3], m2[3], m3[3];
-
-//     Midpoint(m1, v1, v2, 0, level);
-//     Midpoint(m2, v2, v3, 1, level);
-//     Midpoint(m3, v3, v1, 2, level);
-
-//     FMR(v1, m1, m3, level + 1);
-//     FMR(m1, v2, m2, level + 1);
-//     FMR(m3, m2, v3, level + 1);
-//     FMR(m1, m2, m3, level + 1);
-//   }
-// }
-
-// /*
-//   * sets up lookup tables and calls recursive mountain function
-//   */
-// void FractalMountain(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3],
-//                      int pegged[3])
-// {
-//   GLfloat lengths[MAXLEVEL];
-//   GLfloat fraction[8] = { 0.3, 0.3, 0.4, 0.2, 0.3, 0.2, 0.4, 0.4  };
-//   GLfloat bias[8]     = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1  };
-//   int i;
-//   float avglen = (xzlength(v1, v2) + 
-//                   xzlength(v2, v3) +
-// 		  xzlength(v3, v1) / 3);
-
-//   for (i = 0; i < 3; i++) {
-//     Verts[0][i] = v1[i];      /* set mountain vertex globals */
-//     Verts[1][i] = v2[i];
-//     Verts[2][i] = v3[i];
-//     Pegged[i] = pegged[i];
-//   }
-
-//   Slopes[0] = xzslope(Verts[0], Verts[1]);   /* set edge slope globals */
-//   Slopes[1] = xzslope(Verts[1], Verts[2]);
-//   Slopes[2] = xzslope(Verts[2], Verts[0]);
-
-//   lengths[0] = avglen;          
-//   for (i = 1; i < Level; i++) {   
-//     lengths[i] = lengths[i-1]/2;     /* compute edge length for each level */
-//   }
-
-//   for (i = 0; i < Level; i++) {     /* DispFactor and DispBias arrays */      
-//     DispFactor[i] = (lengths[i] * ((i <= 7) ? fraction[i] : fraction[7]));
-//     DispBias[i]   = ((i <= 7) ? bias[i] : bias[7]);
-//   } 
-
-//   glBegin(GL_TRIANGLES);
-//   glColor3f(1.0,1.0,1.0);
-//     FMR(v1, v2, v3, 0);    /* issues no GL but vertex calls */
-//   glEnd();
-// }
-
-
-//  /*
-//   * draw a mountain and build the display list
-//   */
-// void CreateMountain(void)
-// {
-//   GLfloat v1[3] = { 0, 0, -2 }, v2[3] = { -2, 0, 1 }, v3[3] = { 2, 0, 1 };
-//   int pegged[3] = { 1, 1, 1 };
-
-//   glNewList(MOUNTAIN, GL_COMPILE);
-//   glPushAttrib(GL_LIGHTING_BIT);
-//     glCallList(MOUNTAIN_MAT);
-//     FractalMountain(v1, v2, v3, pegged);
-//   glPopAttrib();
-//   glEndList();
-// }
-
-//   /*
-//    * new random numbers to make a different moutain
-//    */
-// void NewMountain(void)
-// {
-//   InitRandTable(time(NULL));
-// }
-
-
-// void NewFractals(void)
-// {
-//   NewMountain();
-// }
-
-
-// void SetupMaterials(void)
-// {
-//   GLfloat mtn_ambuse[] =   { 0.426, 0.256, 0.108, 1.0 };
-//   GLfloat mtn_specular[] = { 0.394, 0.272, 0.167, 1.0 };
-//   GLfloat mtn_shininess[] = { 10 };
-
-//   GLfloat water_ambuse[] =   { 0.0, 0.1, 0.5, 1.0 };
-//   GLfloat water_specular[] = { 0.0, 0.1, 0.5, 1.0 };
-//   GLfloat water_shininess[] = { 10 };
-
-//   GLfloat tree_ambuse[] =   { 0.4, 0.25, 0.1, 1.0 };
-//   GLfloat tree_specular[] = { 0.0, 0.0, 0.0, 1.0 };
-//   GLfloat tree_shininess[] = { 0 };
-
-//   GLfloat leaf_ambuse[] =   { 0.0, 0.8, 0.0, 1.0 };
-//   GLfloat leaf_specular[] = { 0.0, 0.8, 0.0, 1.0 };
-//   GLfloat leaf_shininess[] = { 10 };
-
-//   glNewList(MOUNTAIN_MAT, GL_COMPILE);
-//     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, mtn_ambuse);
-//     glMaterialfv(GL_FRONT, GL_SPECULAR, mtn_specular);
-//     glMaterialfv(GL_FRONT, GL_SHININESS, mtn_shininess);
-//   glEndList();
-
-//   glNewList(WATER_MAT, GL_COMPILE);
-//     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, water_ambuse);
-//     glMaterialfv(GL_FRONT, GL_SPECULAR, water_specular);
-//     glMaterialfv(GL_FRONT, GL_SHININESS, water_shininess);
-//   glEndList();
-
-//   glNewList(TREE_MAT, GL_COMPILE);
-//     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, tree_ambuse);
-//     glMaterialfv(GL_FRONT, GL_SPECULAR, tree_specular);
-//     glMaterialfv(GL_FRONT, GL_SHININESS, tree_shininess);
-//   glEndList();
-
-//   glNewList(LEAF_MAT, GL_COMPILE);
-//     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, leaf_ambuse);
-//     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, leaf_specular);
-//     glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, leaf_shininess);
-//   glEndList();
-// }
-
-// void myGLInit(void)
-// {
-//   GLfloat light_ambient[] = { 0.0, 0.0, 0.0, 1.0 };
-//   GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
-//   GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
-//   GLfloat light_position[] = { 0.0, 0.3, 0.3, 0.0 };
-
-//   GLfloat lmodel_ambient[] = { 0.4, 0.4, 0.4, 1.0 };
-
-//   glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
-//   glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
-//   glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
-//   glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+void fracMountain(float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4)
+{
     
-//   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
-
-//   glEnable(GL_LIGHTING);
-//   glEnable(GL_LIGHT0);
-
-//   glDepthFunc(GL_LEQUAL);
-//   glEnable(GL_DEPTH_TEST);
-
-//   glEnable(GL_NORMALIZE);
-// #if 0
-//   glEnable(GL_CULL_FACE);
-//   glCullFace(GL_BACK);
-// #endif
-
-//   glShadeModel(GL_SMOOTH);
-// #if 0
-//   glEnable(GL_BLEND);
-//   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-// #endif
-
-//   SetupMaterials();
  
+    double perim = sqrt((x2-x1)*(x2-x1) + (z2-z1)*(z2-z1)) + sqrt((x3-x2)*(x3-x2) + (z3-z2)*(z3-z2))
+        + sqrt((x4-x3)*(x4-x3) + (z4-z3)*(z4-z3)) + sqrt((x1-x4)*(x1-x4) + (z1-z4)*(z1-z4));
+    if(perim <= tolerance)
+    {
+        double v1=x2-x1, v2=y2-y1, v3=z2-z1;
+        double w1=x3-x2, w2=y3-y2, w3=z3-z2;
+        double crossx=v2*w3-w2*v3;
+        double crossy=v3*w1-w3*v1;
+        double crossz=v1*w2-w1*v2;
 
-//   glFlush();
-// } 
+        double tolightx=lightPos[0]-x1;
+        double tolighty=lightPos[1]-y1;
+        double tolightz=lightPos[2]-z1;
 
+        double dot =crossx*tolightx +crossy*tolighty +crossz*tolightz;
+        double normc=sqrt(crossx*crossx +crossy*crossy + crossz*crossz);
+        double norml = sqrt(tolightx*tolightx + tolighty*tolighty + tolightz*tolightz);
 
+        double lightamt=dot/(normc*norml);
+        if(lightamt>1)
+            lightamt=1;
+        if(lightamt<0)
+            lightamt=0.5;
 
-
-
+        lightamt=(lightamt*2 +0.15)/2.15;
+        glColor3f(lightamt,lightamt,lightamt);
+        glBegin(GL_POLYGON);
+            glVertex3f(x1,y1,z1);
+            glVertex3f(x2,y2,z2);
+            glVertex3f(x3,y3,z3);
+            glVertex3f(x4,y4,z4);
+        glEnd();
+    }
+    else
+    {
+        //printf("perim %f tolerance %f\n",perim, tolerance);
+        double r1 = (double)randomNormal(0.041, 0.1);
+        double r2 = (double)randomNormal(0.0,   0.01);
+        double r3 = (double)randomNormal(0.0,   0.01);
+        double xmid = ((x1+x2+x3+x4)/4)+r2*perim;
+        double ymid = ((y1+y2+y3+y4)/4)+r1*perim;
+        if(ymid<0)
+            ymid=0;
+        double zmid = ((z1+z2+z3+z4)/4)+r3*perim;
+        fracMountain(x1,y1,z1,(x1+x2)/2,(y1+y2)/2,(z1+z2)/2,xmid,ymid,zmid,(x1+x4)/2,(y1+y4)/2,(z1+z4)/2);
+        fracMountain((x1+x4)/2,(y1+y4)/2,(z1+z4)/2,xmid,ymid,zmid,(x4+x3)/2,(y4+y3)/2,(z4+z3)/2,x4,y4,z4);
+        fracMountain((x1+x2)/2,(y1+y2)/2,(z1+z2)/2,x2,y2,z2,(x2+x3)/2,(y2+y3)/2,(z2+z3)/2,xmid,ymid,zmid);
+        fracMountain(xmid,ymid,zmid,(x2+x3)/2,(y2+y3)/2,(z2+z3)/2,x3,y3,z3,(x3+x4)/2,(y3+y4)/2,(z3+z4)/2);
+    }
+}
 
 
 /*
@@ -454,20 +220,20 @@ void drawXYZ(void)
     glPointSize(10);
     glColor3f(1.0,1.0,1.0); //color - white
     glBegin(GL_LINES);
-    glVertex3d(-1,-1,-1);
-    glVertex3d(len,-1,-1); //X-axis
-    glVertex3d(-1,-1,-1);
-    glVertex3d(-1,len,-1); //Y-axis
-    glVertex3d(-1,-1,-1);
-    glVertex3d(-1,-1,len); //Z-axis
+    glVertex3d(0,0,0);
+    glVertex3d(len,0,0); //X-axis
+    glVertex3d(0,0,0);
+    glVertex3d(0,len,0); //Y-axis
+    glVertex3d(0,0,0);
+    glVertex3d(0,0,len); //Z-axis
     glEnd();
 
     //Label Axes
-    glRasterPos3d(len,-1,-1);
+    glRasterPos3d(len,0,0);
     Print("X");
-    glRasterPos3d(-1,len,-1);
+    glRasterPos3d(0,len,0);
     Print("Y");
-    glRasterPos3d(-1,-1,len);
+    glRasterPos3d(0,0,len);
     Print("Z");
     
     /* update display */
@@ -798,17 +564,12 @@ static void tree(double x, double y, double z,
 
 /**
  * @brief  create  a dirt road path as base
- *         at (x,y,z) of width dx, height dy, and length dx
- *         rotated th about the y-axis
- * 
  */
-static void path(double x, double y, double z, 
-                 double dx, double dy, double dz,
-                 double th)
+static void path(void)
 {
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D,roadTexture);
-    cube(x,y,z,dx,dy,dz,th);
+    cube(0,0,0,1,0.05,2,0);
     glDisable(GL_TEXTURE_2D);
 }
 
@@ -921,8 +682,8 @@ static void drawCabin(double x, double y, double z,
 // Inner walls - adding inner walls to add different texture to interior
 // add stone wall like texture for interior 
    
-  //  glEnable(GL_TEXTURE_2D);
-  //  glBindTexture(GL_TEXTURE_2D,interiorWall);
+   glEnable(GL_TEXTURE_2D);
+   glBindTexture(GL_TEXTURE_2D,interiorWall);
    
    // Inside wall (front) of the cabin along X-axis
    glBegin(GL_QUADS);
@@ -1034,16 +795,16 @@ static void drawCabin(double x, double y, double z,
 
 void renderScene(void)
 {
-    const float base = -0.7;
+    const float base = 0;
    
-    path (0,-1,0,2,0.01,3,0);
-    //house(-1,-0.7,-1,0.3,0.3,0.3,0);
-    // tree(0,-0.7,0, 0.2, 0.3);
+    path(); // draw a cube to make a dirt road. 
+   
+    // fracMountain(0.8,0.0,-5,  0.8,0.0,-4,  2.0,0.0,-4,  2.0,0.0,-5);
+    // fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
 
-    drawCabin(-1,base,-1,0.3,0.4,0.5,0);
-    //CreateMountain();
-   
-    
+     // tree(0,-0.7,0, 0.2, 0.3);
+
+    //drawCabin(-1,base,-1,0.3,0.4,0.5,0);
     
 }
 
@@ -1080,14 +841,16 @@ void display(void)
     /* clear screen and Z-Buffer*/
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    /* Enable Z-buffering in OpenGL*/
+    glEnable(GL_DEPTH_TEST);
+
     /* reset transformation - clears changes made earlier */
     glLoadIdentity();
 
    
     switch(mode)
     {
-        case ORTHOGONAL:
-            // glTranslatef(0,0,8.0);
+        case ORTHOGONAL: // world orientation
             glRotatef(ph,1,0,0);
             glRotatef(th,0,1,0);
             //  Display parameters
@@ -1095,7 +858,7 @@ void display(void)
             glWindowPos2i(5,5);
             Print("Angle= x: %d,y :%d   Projection=%s",th,ph,text[mode]);
             break;
-        case PERSPECTIVE:
+        case PERSPECTIVE: // eye position
             Ex = -2*dim*Sin(th)*Cos(ph);
             Ey = +2*dim*Sin(ph);
             Ez = +2*dim*Cos(th)*Cos(ph);
@@ -1107,15 +870,15 @@ void display(void)
             break;
         case FIRSTPERSON:
             
-            MX = -2*dim*Sin(th)*Cos(ph);
-            MY = -2*dim*Sin(ph);
-            MZ = -2*dim*Cos(th)*Cos(ph);
+            MX = +2*dim*Sin(th_FP)*Cos(ph_FP);
+            MY = -2*dim*Sin(ph_FP);
+            MZ = -2*dim*Cos(th_FP)*Cos(ph_FP);
             // imitate first person movement
             gluLookAt(EX,EY,EZ,EX+MX,EY+MY,EZ+MZ,
-                    0,1,0);
+                    0,Cos(ph_FP),0);                    
             glColor3f(1.0,1.0,1.0);
             glWindowPos2i(5,5);
-            Print("Angle=%d,%d  Position=%.1f,%.1f  Dim:%.1f Projection=%s",th,ph,EX,EZ,dim,text[mode]);
+            Print("Angle=%d,%d  Position=%.1f,%.1f  Dim:%.1f Projection=%s",th_FP,ph_FP,EX,EZ,dim,text[mode]);
             break;
         default:
             break;
@@ -1166,10 +929,8 @@ void display(void)
         glDisable(GL_LIGHTING);
 
 
-    glPushMatrix();
+   
     renderScene();
-  
-    glPopMatrix();
 
     /* draw the axis */
     glDisable(GL_LIGHTING); 
@@ -1208,20 +969,45 @@ void special(int key,int x, int y)
     {
             //  Right arrow key - increase angle by 5 degrees
             case GLUT_KEY_RIGHT:
-                th = (th + 5) % 360;
+                if(mode == FIRSTPERSON)
+                {
+                    th_FP = (th_FP + 1)%360;
+                }
+                else{
+                    th = (th + 5) % 360;
+                }
                 break;
             //  Left arrow key - decrease angle by 5 degrees
             case GLUT_KEY_LEFT:
-                th = (th - 5) % 360;
+                if(mode == FIRSTPERSON)
+                {
+                   th_FP = (th_FP - 1) % 360;
+                }
+                else {
+                    th = (th - 5) % 360;
+                }
                 break;
             //  Up arrow key - increase elevation by 5 degrees
             case GLUT_KEY_UP:
-                ph = (ph + 5) % 360;
+                if(mode == FIRSTPERSON)
+                {
+                     EX -= -Sin(th_FP)*Cos(ph_FP); // Update Coordinates
+			         EZ -= Cos(th_FP)*Cos(ph_FP);
+                }
+                else{
+                ph = (ph - 5) % 360;
+                }
                 break;
             //  Down arrow key - decrease elevation by 5 degrees
             case GLUT_KEY_DOWN:
-                ph = (ph - 5) % 360;
-                break; 
+                if(mode == FIRSTPERSON)
+                {
+                     EX += -Sin(th_FP)*Cos(ph_FP); // Update Coordinates
+			         EZ += Cos(th_FP)*Cos(ph_FP);
+                }
+                else{
+                ph = (ph + 5) % 360;
+                }
             //  PageUp key - increase dim
             case GLUT_KEY_PAGE_UP:
                 dim+= 0.1;
@@ -1250,9 +1036,15 @@ void special(int key,int x, int y)
                 break;
 
     }
-    
-   
-    projection();
+
+    if(mode == ORTHOGONAL)
+    {
+        Project(0,asp,dim);
+    }
+    else
+    {
+        Project(fov,asp,dim);
+    }
     /* update the display */
     glutPostRedisplay();
 }
@@ -1336,7 +1128,7 @@ void key(unsigned char ch,int x, int y)
     {
       fov--;
     }
-    else if (ch == '+' && ch<179)
+    else if (ch == '+' && ch<179) //1 FP 2 PERSPECTIVE // orthogonal
     {
       fov++;
     }
@@ -1345,29 +1137,24 @@ void key(unsigned char ch,int x, int y)
   {
     if (ch == '0')
     {
-        th = 0; ph =0;
+        th_FP = 0; ph_FP =0;
         dim = 5.2;
-        MX = 0;
-        MY = 0;
-        MZ = 0;
         EX = 0;
         EY = 0;
         EZ = 5.2;
     }
-    else if (ch == 'w')
-    {
-        EX += MX * 0.1;
-        EZ += MZ * 0.1;
-    }
-    else if (ch == 's')
-    {
-      EX -= MX * 0.1;
-      EZ -= MZ * 0.1;
-    }
   }
     //  Translate shininess power to value (-1 => 0)
     shiny = shininess<0 ? 0 : pow(2.0,shininess);
-    projection();
+
+    if(mode == ORTHOGONAL)
+    {
+        Project(0,asp,dim);
+    }
+    else
+    {
+        Project(fov,asp,dim);
+    }
     /* update the display */
     glutIdleFunc(move?idle:NULL);
     glutPostRedisplay();
@@ -1375,46 +1162,37 @@ void key(unsigned char ch,int x, int y)
 
 
 /* function called by GLUT when window is resized */
-void reshape(int width,int height) //DO NOT MODIFY
+void reshape(int width,int height)
 {
-    //  Ratio of the width to the height of the window
-  asp = (height>0) ? (double)width/height : 1;
-  //  Set the viewport to the entire window
-  glViewport(0,0, width,height);
-  //  Tell OpenGL we want to manipulate the projection matrix
-  glMatrixMode(GL_PROJECTION);
-  //  Undo previous transformations
-  glLoadIdentity();
-  //  Switch to manipulating the model matrix
-  glMatrixMode(GL_MODELVIEW);
-  //  Undo previous transformations
-  glLoadIdentity();
-  //  Set the viewport to the entire window
-  glViewport(0,0, width,height);
-  //  Set projection
-  projection();
+   //  Ratio of the width to the height of the window
+   asp = (height>0) ? (double)width/height : 1;
+   //  Set the viewport to the entire window
+   glViewport(0,0, width,height);
+   //  Set projection
+   if(mode == 0)
+		Project(0,asp,dim);
+   else
+	   Project(fov,asp,dim);
 }
- 
 
 
 
 int main(int argc,char* argv[]) 
 {
  
-
     /* initialize OpenGL Utility Tool */
     glutInit(&argc,argv);
 
     /* Request double bufferred true color window */
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); //GLUT_DEPTH adds z-buffer
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); 
 
-    glutInitWindowPosition(100,100);
+    glutInitWindowPosition(300,300);
 
     /* Request 600 x 600 pixel window */
     glutInitWindowSize(600,600);
 
     /* Create Window */
-    glutCreateWindow("Madhukar's Cabin in the Woods");
+    glutCreateWindow("Final Project : Cabin in the Woods");
 
 #ifdef USEGLEW
    //  Initialize GLEW
@@ -1431,12 +1209,7 @@ int main(int argc,char* argv[])
     /* register callback for key presses*/
     glutKeyboardFunc(key);
 
-    glutVisibilityFunc(NULL);
-
-    glutIdleFunc(NULL);
-
-   
-
+    // Load the textures
     exteriorWall = LoadTexBMP("images/brick.bmp");
     interiorWall = LoadTexBMP("images/housewall.bmp");
     roadTexture = LoadTexBMP("images/mud.bmp");
