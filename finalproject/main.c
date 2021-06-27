@@ -16,15 +16,16 @@
 #include "CSCIx229.h"
 #include <time.h>
 #include <limits.h>
+#include <float.h>
 
 //Globals
-int th = -55;          //  Azimuth of view angle
-int ph = 10;          //  Elevation of view angle
+int th = 0;          //  Azimuth of view angle
+int ph = 30;          //  Elevation of view angle
 int axes=1;        //  Display axes
 int fov = 58;      //  field of view for perspective
 
 double asp = 1;    //  aspect ratio
-double dim = 2.6;  // dimension of orthogonal box
+double dim = 10;  // dimension of orthogonal box
 double len = 2.0;  //length of axes
 
 //parameters for first person view
@@ -36,14 +37,14 @@ double MZ = 0;
 
 /* camera position*/
 double EX = 0; 
-double EY = 0;
-double EZ = 6;
+double EY = -2.0;
+double EZ = -2.0;
 
 /* different modes*/
 const char* text[] = {"Orthogonal","Perspective","First Person"};
 
 typedef enum{ ORTHOGONAL = 0, PERSPECTIVE,FIRSTPERSON}MODE_T;
-MODE_T mode = PERSPECTIVE;
+MODE_T mode = ORTHOGONAL;
 
 // lighting parameters 
 int move      =   1;  // move light 
@@ -68,14 +69,329 @@ const float black[] = {0,0,0,1};
 
 
 
-
-
 // texture parameters
-unsigned int wallTexture;
+unsigned int exteriorWall;
+unsigned int interiorWall;
 unsigned int roadTexture;
 unsigned int roofTexture;
 unsigned int leafTexture;
 unsigned int woodTexture;
+
+
+
+
+
+
+
+
+// //           Math
+
+// typedef enum { NOTALLOWED, MOUNTAIN, TREE, ISLAND, BIGMTN, STEM, LEAF, 
+//                MOUNTAIN_MAT, WATER_MAT, LEAF_MAT, TREE_MAT, STEMANDLEAVES,
+//                AXES } DisplayLists;
+
+
+// #define MAXLEVEL 8
+// #define NUMRANDS 191
+// int Level = 4;
+
+
+//   /* normalizes v */
+// void normalize(GLfloat v[3])
+// {
+//   GLfloat d = sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+
+//   if (d == 0)
+//     fprintf(stderr, "Zero length vector in normalize\n");
+//   else{
+//     v[0] /= d; 
+//     v[1] /= d; 
+//     v[2] /= d;
+//   }
+// }
+
+// float xzlength(float v1[3], float v2[3])
+// {
+//   return sqrt((v1[0] - v2[0])*(v1[0] - v2[0]) +
+//               (v1[2] - v2[2])*(v1[2] - v2[2]));
+// }
+//   /* calculates a normalized crossproduct to v1, v2 */
+// void ncrossprod(float v1[3], float v2[3], float cp[3])
+// {
+//   cp[0] = v1[1]*v2[2] - v1[2]*v2[1];
+//   cp[1] = v1[2]*v2[0] - v1[0]*v2[2];
+//   cp[2] = v1[0]*v2[1] - v1[1]*v2[0];
+//   normalize(cp);
+// }
+
+
+//   /* calculates normal to the triangle designated by v1, v2, v3 */
+// void triagnormal(float v1[3], float v2[3], float v3[3], float norm[3])
+// {
+//   float vec1[3], vec2[3];
+
+//   vec1[0] = v3[0] - v1[0];  vec2[0] = v2[0] - v1[0];
+//   vec1[1] = v3[1] - v1[1];  vec2[1] = v2[1] - v1[1];
+//   vec1[2] = v3[2] - v1[2];  vec2[2] = v2[2] - v1[2];
+
+//   ncrossprod(vec2, vec1, norm);
+// }
+
+
+// float xzslope(float v1[3], float v2[3])
+// {
+//   return ((v1[0] != v2[0]) ? ((v1[2] - v2[2]) / (v1[0] - v2[0]))
+// 	                   : FLT_MAX);
+// }
+
+
+// //                           MOUNTAIN STUFF
+// GLfloat DispFactor[MAXLEVEL];  /* Array of what to multiply random number
+// 				  by for a given level to get midpoint
+// 				  displacement  */
+
+// GLfloat DispBias[MAXLEVEL];  /* Array of what to add to random number
+// 				before multiplying it by DispFactor */
+
+
+// float RandTable[NUMRANDS];  /* hash table of random numbers so we can
+// 			       raise the same midpoints by the same amount */ 
+
+
+
+//          /* The following are for permitting an edge of a moutain to be   */
+//          /* pegged so it won't be displaced up or down.  This makes it    */
+//          /* easier to setup scenes and makes a single moutain look better */
+
+// GLfloat Verts[3][3],    /* Vertices of outside edges of mountain */
+//         Slopes[3];      /* Slopes between these outside edges */
+// int     Pegged[3];      /* Is this edge pegged or not */   
+
+
+
+
+
+//  /*
+//   * Comes up with a new table of random numbers [0,1)
+//   */
+// void InitRandTable(unsigned int seed)
+// {
+//   int i;
+
+//   srand48((long) seed);
+//   for (i = 0; i < NUMRANDS; i++)
+//     RandTable[i] = drand48() - 0.5;
+// }
+
+//   /* calculate midpoint and displace it if required */
+// void Midpoint(GLfloat mid[3], GLfloat v1[3], GLfloat v2[3],
+// 	      int edge, int level)
+// {
+//   unsigned hash;
+
+//   mid[0] = (v1[0] + v2[0]) / 2;
+//   mid[1] = (v1[1] + v2[1]) / 2;
+//   mid[2] = (v1[2] + v2[2]) / 2;
+//   if (!Pegged[edge] || (fabs(xzslope(Verts[edge], mid) 
+//                         - Slopes[edge]) > 0.00001)) {
+//     srand48((int)((v1[0]+v2[0])*23344));
+//     hash = drand48() * 7334334;
+//     srand48((int)((v2[2]+v1[2])*43433));
+//     hash = (unsigned)(drand48() * 634344 + hash) % NUMRANDS;
+//     mid[1] += ((RandTable[hash] + DispBias[level]) * DispFactor[level]);
+//   }
+// }
+
+
+//   /*
+//    * Recursive moutain drawing routine -- from lecture with addition of 
+//    * allowing an edge to be pegged.  This function requires the above
+//    * globals to be set, as well as the Level global for fractal level 
+//    */
+// void FMR(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3], int level)
+// {
+//   printf("levl %d\n",level);
+//   if (level == Level) {
+//     GLfloat norm[3];
+
+//     triagnormal(v1, v2, v3, norm);
+//     glNormal3fv(norm);
+//     glVertex3fv(v1);
+//     glVertex3fv(v2);
+//     glVertex3fv(v3);
+
+//   } else {
+//     GLfloat m1[3], m2[3], m3[3];
+
+//     Midpoint(m1, v1, v2, 0, level);
+//     Midpoint(m2, v2, v3, 1, level);
+//     Midpoint(m3, v3, v1, 2, level);
+
+//     FMR(v1, m1, m3, level + 1);
+//     FMR(m1, v2, m2, level + 1);
+//     FMR(m3, m2, v3, level + 1);
+//     FMR(m1, m2, m3, level + 1);
+//   }
+// }
+
+// /*
+//   * sets up lookup tables and calls recursive mountain function
+//   */
+// void FractalMountain(GLfloat v1[3], GLfloat v2[3], GLfloat v3[3],
+//                      int pegged[3])
+// {
+//   GLfloat lengths[MAXLEVEL];
+//   GLfloat fraction[8] = { 0.3, 0.3, 0.4, 0.2, 0.3, 0.2, 0.4, 0.4  };
+//   GLfloat bias[8]     = { 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1  };
+//   int i;
+//   float avglen = (xzlength(v1, v2) + 
+//                   xzlength(v2, v3) +
+// 		  xzlength(v3, v1) / 3);
+
+//   for (i = 0; i < 3; i++) {
+//     Verts[0][i] = v1[i];      /* set mountain vertex globals */
+//     Verts[1][i] = v2[i];
+//     Verts[2][i] = v3[i];
+//     Pegged[i] = pegged[i];
+//   }
+
+//   Slopes[0] = xzslope(Verts[0], Verts[1]);   /* set edge slope globals */
+//   Slopes[1] = xzslope(Verts[1], Verts[2]);
+//   Slopes[2] = xzslope(Verts[2], Verts[0]);
+
+//   lengths[0] = avglen;          
+//   for (i = 1; i < Level; i++) {   
+//     lengths[i] = lengths[i-1]/2;     /* compute edge length for each level */
+//   }
+
+//   for (i = 0; i < Level; i++) {     /* DispFactor and DispBias arrays */      
+//     DispFactor[i] = (lengths[i] * ((i <= 7) ? fraction[i] : fraction[7]));
+//     DispBias[i]   = ((i <= 7) ? bias[i] : bias[7]);
+//   } 
+
+//   glBegin(GL_TRIANGLES);
+//   glColor3f(1.0,1.0,1.0);
+//     FMR(v1, v2, v3, 0);    /* issues no GL but vertex calls */
+//   glEnd();
+// }
+
+
+//  /*
+//   * draw a mountain and build the display list
+//   */
+// void CreateMountain(void)
+// {
+//   GLfloat v1[3] = { 0, 0, -2 }, v2[3] = { -2, 0, 1 }, v3[3] = { 2, 0, 1 };
+//   int pegged[3] = { 1, 1, 1 };
+
+//   glNewList(MOUNTAIN, GL_COMPILE);
+//   glPushAttrib(GL_LIGHTING_BIT);
+//     glCallList(MOUNTAIN_MAT);
+//     FractalMountain(v1, v2, v3, pegged);
+//   glPopAttrib();
+//   glEndList();
+// }
+
+//   /*
+//    * new random numbers to make a different moutain
+//    */
+// void NewMountain(void)
+// {
+//   InitRandTable(time(NULL));
+// }
+
+
+// void NewFractals(void)
+// {
+//   NewMountain();
+// }
+
+
+// void SetupMaterials(void)
+// {
+//   GLfloat mtn_ambuse[] =   { 0.426, 0.256, 0.108, 1.0 };
+//   GLfloat mtn_specular[] = { 0.394, 0.272, 0.167, 1.0 };
+//   GLfloat mtn_shininess[] = { 10 };
+
+//   GLfloat water_ambuse[] =   { 0.0, 0.1, 0.5, 1.0 };
+//   GLfloat water_specular[] = { 0.0, 0.1, 0.5, 1.0 };
+//   GLfloat water_shininess[] = { 10 };
+
+//   GLfloat tree_ambuse[] =   { 0.4, 0.25, 0.1, 1.0 };
+//   GLfloat tree_specular[] = { 0.0, 0.0, 0.0, 1.0 };
+//   GLfloat tree_shininess[] = { 0 };
+
+//   GLfloat leaf_ambuse[] =   { 0.0, 0.8, 0.0, 1.0 };
+//   GLfloat leaf_specular[] = { 0.0, 0.8, 0.0, 1.0 };
+//   GLfloat leaf_shininess[] = { 10 };
+
+//   glNewList(MOUNTAIN_MAT, GL_COMPILE);
+//     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, mtn_ambuse);
+//     glMaterialfv(GL_FRONT, GL_SPECULAR, mtn_specular);
+//     glMaterialfv(GL_FRONT, GL_SHININESS, mtn_shininess);
+//   glEndList();
+
+//   glNewList(WATER_MAT, GL_COMPILE);
+//     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, water_ambuse);
+//     glMaterialfv(GL_FRONT, GL_SPECULAR, water_specular);
+//     glMaterialfv(GL_FRONT, GL_SHININESS, water_shininess);
+//   glEndList();
+
+//   glNewList(TREE_MAT, GL_COMPILE);
+//     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, tree_ambuse);
+//     glMaterialfv(GL_FRONT, GL_SPECULAR, tree_specular);
+//     glMaterialfv(GL_FRONT, GL_SHININESS, tree_shininess);
+//   glEndList();
+
+//   glNewList(LEAF_MAT, GL_COMPILE);
+//     glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, leaf_ambuse);
+//     glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, leaf_specular);
+//     glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, leaf_shininess);
+//   glEndList();
+// }
+
+// void myGLInit(void)
+// {
+//   GLfloat light_ambient[] = { 0.0, 0.0, 0.0, 1.0 };
+//   GLfloat light_diffuse[] = { 1.0, 1.0, 1.0, 1.0 };
+//   GLfloat light_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+//   GLfloat light_position[] = { 0.0, 0.3, 0.3, 0.0 };
+
+//   GLfloat lmodel_ambient[] = { 0.4, 0.4, 0.4, 1.0 };
+
+//   glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
+//   glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
+//   glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
+//   glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+    
+//   glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+
+//   glEnable(GL_LIGHTING);
+//   glEnable(GL_LIGHT0);
+
+//   glDepthFunc(GL_LEQUAL);
+//   glEnable(GL_DEPTH_TEST);
+
+//   glEnable(GL_NORMALIZE);
+// #if 0
+//   glEnable(GL_CULL_FACE);
+//   glCullFace(GL_BACK);
+// #endif
+
+//   glShadeModel(GL_SMOOTH);
+// #if 0
+//   glEnable(GL_BLEND);
+//   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+// #endif
+
+//   SetupMaterials();
+ 
+
+//   glFlush();
+// } 
+
+
+
 
 
 
@@ -175,7 +491,7 @@ static void cube(double x,double y,double z,
    // Define material for specular and emission
    glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
    glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white); // specular component as white
-   //glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
    
   
    glPushMatrix(); //  Save transformation
@@ -443,7 +759,7 @@ static void house(double x,double y, double z,
                   double th)
 {
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D,wallTexture);
+    glBindTexture(GL_TEXTURE_2D,exteriorWall);
     cube(x,y,z,width,height,length,th);
     glDisable(GL_TEXTURE_2D);
     
@@ -452,10 +768,6 @@ static void house(double x,double y, double z,
     drawRoof(x,y+height,z,width,height/2,length+0.1,th);
     glDisable(GL_TEXTURE_2D);
 }
-
-
-
-
 
 /*
 * Draw a tree
@@ -484,7 +796,12 @@ static void tree(double x, double y, double z,
 }
 
 
-
+/**
+ * @brief  create  a dirt road path as base
+ *         at (x,y,z) of width dx, height dy, and length dx
+ *         rotated th about the y-axis
+ * 
+ */
 static void path(double x, double y, double z, 
                  double dx, double dy, double dz,
                  double th)
@@ -499,36 +816,233 @@ static void path(double x, double y, double z,
 
 
 
+/**
+ * @brief  create a cabin at (x,y,z)
+ *         of length dx, height dy and width dz
+ *         rotated th about the y-axis
+ * 
+ */
+static void drawCabin(double x, double y, double z, 
+                 double dx, double dy, double dz,
+                 double th)
+{
+    int tex_x = 3, tex_y = 1;
+    
+    glPushMatrix();
+    glTranslated(x,y,z);
+    glRotated(th,0,1,0);
+    glScaled(dx,dy,dz);
+
+   // Define material for specular and emission
+   glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
+   glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white); // specular component as white
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
+
+
+
+   // TO DO: add textures to the cabin
+
+   // Add wooden wall texture to outside walls
+   //OUTSIDE : front wall of the cabin  (along X-axis)
+   glEnable(GL_TEXTURE_2D);
+   glBindTexture(GL_TEXTURE_2D,exteriorWall);
+
+
+   // front
+   glBegin(GL_QUADS);
+   //glColor3f(0.85,0.53,0.1);
+
+   //L of window                             
+   glNormal3f(0,0,1);
+   glTexCoord2f(0,0);glVertex3f(-1,y,1);
+   glTexCoord2f(-0.6,0);glVertex3f(-0.6,y, 1);
+   glTexCoord2f(-0.6,1);glVertex3f(-0.6,+1, 1);
+   glTexCoord2f(0,1);glVertex3f(-1,+1, 1);
+
+   // R of window
+   glNormal3f(0,0,1);
+   glTexCoord2f(0,0);glVertex3f(0.6,y,1);
+   glTexCoord2f(tex_x,0);glVertex3f(+1,y, 1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1, 1);
+   glTexCoord2f(0,tex_y);glVertex3f(0.6,+1, 1);
+
+   // Below window section of wall
+   glNormal3f(0,0,1);
+   glTexCoord2f(0,0);glVertex3f(-0.6,y,1);
+   glTexCoord2f(tex_x,0);glVertex3f(+0.6,y, 1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,-0.55,1);
+   glTexCoord2f(0,tex_y);glVertex3f(-0.6,-0.55,1);
+
+   // above window section of wall
+   glNormal3f(0,0,1);
+   glTexCoord2f(0,0);glVertex3f(-0.6,0.5,1);
+   glTexCoord2f(tex_x,0);glVertex3f(+0.6,0.5,1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,+1, 1);
+   glTexCoord2f(0,tex_y);glVertex3f(-0.6,+1,1);
+
+   
+   //OUTSIDE : back wall of the cabin (along X-axis)
+   glNormal3f( 0, 0, -1);
+   glTexCoord2f(0,0);glVertex3f(+1,y,-1);
+   glTexCoord2f(tex_x,0);glVertex3f(-1,y,-1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,-1);
+   glTexCoord2f(0,tex_y);glVertex3f(+1,+1,-1);
+
+   //OUTSIDE : right side of the wall (along Z-axis)
+   glNormal3f( 1, 0, 0);
+   glTexCoord2f(0,0);glVertex3f(+1,y,+1);
+   glTexCoord2f(tex_x,0);glVertex3f(+1,y,-1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,-1);
+   glTexCoord2f(0,tex_y);glVertex3f(+1,+1,+1);
+   
+   glEnd();
+
+
+   // Outside wall section without door (along Z-axis)
+   glBegin(GL_QUADS);
+   glColor3f(0.85,0.53,0.1);
+   glNormal3f(-1, 0, 0);
+   glTexCoord2f(0,0);glVertex3f(-1,y,-1);
+   glTexCoord2f(tex_x,0);glVertex3f(-1,y,0.5);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,0.5);
+   glTexCoord2f(0,tex_y);glVertex3f(-1,+1,-1);
+
+   // Outside wall section above the door (along Z-axis)
+   glNormal3f(-1, 0, 0);
+   glTexCoord2f(0,0);glVertex3f(-1,0.5,0.5);
+   glTexCoord2f(tex_x,0);glVertex3f(-1,0.5,+1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,+1);
+   glTexCoord2f(0,tex_y);glVertex3f(-1,+1,0.5);
+
+   glEnd();
+   glDisable(GL_TEXTURE_2D);
+   
+   
+// Inner walls - adding inner walls to add different texture to interior
+// add stone wall like texture for interior 
+   
+  //  glEnable(GL_TEXTURE_2D);
+  //  glBindTexture(GL_TEXTURE_2D,interiorWall);
+   
+   // Inside wall (front) of the cabin along X-axis
+   glBegin(GL_QUADS);
+   glColor3f(1,1,1);
+
+
+   // interior back wall along X-axis
+   glNormal3f( 0, 0, +1);
+   glTexCoord2f(0,0);glVertex3f(+1,y,-0.99);
+   glTexCoord2f(tex_x,0);glVertex3f(-1,y,-0.99);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,-0.99);
+   glTexCoord2f(0,tex_y);glVertex3f(+1,+1,-0.99);
+
+   // Inside right side of the wall (along Z-axis)
+   glNormal3f(-1, 0, 0);
+   glTexCoord2f(0,0);glVertex3f(+0.99,y,+1);
+   glTexCoord2f(tex_x,0);glVertex3f(+0.99,y,-1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.99,+1,-1);
+   glTexCoord2f(0,tex_y);glVertex3f(+0.99,+1,+1);
+
+
+   // Inside wall section without door (along Z-axis)
+   glNormal3f(+1, 0, 0);
+   glTexCoord2f(0,0);glVertex3f(-0.99,y,-1);
+   glTexCoord2f(tex_x,0);glVertex3f(-0.99,y,0.5);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,0.5);
+   glTexCoord2f(0,tex_y);glVertex3f(-0.99,+1,-1);
+
+
+
+   // Inside wall section above the door (along Z-axis)
+   glNormal3f(+1, 0, 0);
+   glTexCoord2f(0,0);glVertex3f(-0.99,0.5,0.5);
+   glTexCoord2f(tex_x,0);glVertex3f(-0.99,0.5,+1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,+1);
+   glTexCoord2f(0,tex_y);glVertex3f(-0.99,+1,0.5);
+   
+
+
+   //L of window                             
+   glNormal3f(0,0,-1);
+   glTexCoord2f(0,0);glVertex3f(-1,y,+0.99);
+   glTexCoord2f(tex_x,0);glVertex3f(-0.6,y,+0.99);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-0.6,+1,+0.99);
+   glTexCoord2f(0,tex_y);glVertex3f(-1,+1,+0.99);
+
+   // R of window
+   glNormal3f(0,0,-1);
+   glTexCoord2f(0,0);glVertex3f(0.6,y,+0.99);
+   glTexCoord2f(tex_x,0);glVertex3f(+1,y,+0.99);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,+0.99);
+   glTexCoord2f(0,tex_y);glVertex3f(0.6,+1,+0.99);
+
+   // Below window section of wall
+   glNormal3f(0,0,-1);
+   glTexCoord2f(0,0);glVertex3f(-0.6,y,+0.99);
+   glTexCoord2f(tex_x,0);glVertex3f(+0.6,y,+0.99);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,-0.55,+0.99);
+   glTexCoord2f(0,tex_y);glVertex3f(-0.6,-0.55,+0.99);
+
+   // above window section of wall
+   glNormal3f(0,0,-1);
+   glTexCoord2f(0,0);glVertex3f(-0.6,0.5,+0.99);
+   glTexCoord2f(tex_x,0);glVertex3f(+0.6,0.5,+0.99);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,+1,+0.99);
+   glTexCoord2f(0,tex_y);glVertex3f(-0.6,+1,+0.99);
+
+   glEnd();
+  //  glDisable(GL_TEXTURE_2D);
+
+
+
+
+   // Exterior top of the house
+   glBegin(GL_QUADS);
+   glColor3f(1.0,0,0);   
+   glNormal3f( 0, 1, 0);
+   glVertex3f(-1,+1,+1);
+   glVertex3f(+1,+1,+1);
+   glVertex3f(+1,+1,-1);
+   glVertex3f(-1,+1,-1);
+   glEnd();
+
+   // Exterior top of the house
+   glBegin(GL_QUADS);
+   glColor3f(1.0,1.0,1.0);   
+   glNormal3f( 0, -1, 0);
+   glVertex3f(-1,+0.99,+1);
+   glVertex3f(+1,+0.99,+1);
+   glVertex3f(+1,+0.99,-1);
+   glVertex3f(-1,+0.99,-1);
+   
+
+
+
+
+   glEnd();
+   
+   
+   glPopMatrix();
+   glEnable(GL_TEXTURE_2D);
+   glBindTexture(GL_TEXTURE_2D,roofTexture);
+   drawRoof(x,y+dy,z,dx,dy,dz,th);
+   glDisable(GL_TEXTURE_2D);
+
+}
+
+
+
 void renderScene(void)
 {
     const float base = -0.7;
    
     path (0,-1,0,2,0.01,3,0);
-    house(-1,-0.7,-1,0.3,0.3,0.3,0);
-    tree(0,-0.7,0, 0.2, 0.3);
-    // //tree(0.1,-1,-1, 0.2, 0.3);
-     
-    // // house(-1,-1,-5,0.4,0.4,0.4,60);
-    // tree(-0.3,-1,-2, 0.2, 0.3);
-    
+    //house(-1,-0.7,-1,0.3,0.3,0.3,0);
+    // tree(0,-0.7,0, 0.2, 0.3);
 
-    // tree(+0.2,-1,-1, 0.2, 0.3);
-    // tree(+0.6,-1,-1, 0.2, 0.3);
-
-    // tree(+0.2,-1,-2, 0.2, 0.3);
-    // tree(+0.6,-1,-2, 0.2, 0.3);
-
-
-    // tree(+1.0,-1,-1, 0.2, 0.3);
-    // tree(+1.5,-1,-1, 0.2, 0.3);
-
-    // // house(+3,-1,-1,0.3,0.3,0.3,90);
-    // tree(+2.0,-1,-1, 0.2, 0.3);
-    // tree(+2.5,-1,-1, 0.2, 0.3);
-
-    // // house(+3,-1,-2,0.3,0.3,0.3,45);
-    // tree(+1.8,-1,-2, 0.2, 0.3);
-    // tree(+2.2,-1,-2, 0.2, 0.3);
+    drawCabin(-1,base,-1,0.3,0.4,0.5,0);
+    //CreateMountain();
+   
     
     
 }
@@ -573,6 +1087,7 @@ void display(void)
     switch(mode)
     {
         case ORTHOGONAL:
+            // glTranslatef(0,0,8.0);
             glRotatef(ph,1,0,0);
             glRotatef(th,0,1,0);
             //  Display parameters
@@ -916,16 +1431,18 @@ int main(int argc,char* argv[])
     /* register callback for key presses*/
     glutKeyboardFunc(key);
 
- 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_NORMALIZE);
-    glEnable(GL_COLOR_MATERIAL);
+    glutVisibilityFunc(NULL);
 
-    wallTexture = LoadTexBMP("images/brick.bmp");
+    glutIdleFunc(NULL);
+
+   
+
+    exteriorWall = LoadTexBMP("images/brick.bmp");
+    interiorWall = LoadTexBMP("images/housewall.bmp");
     roadTexture = LoadTexBMP("images/mud.bmp");
-    roofTexture = LoadTexBMP("images/houseroof.bmp");
-    woodTexture = LoadTexBMP("images/wood_1.bmp");
-    leafTexture = LoadTexBMP("images/treeleaf.bmp");
+    roofTexture = LoadTexBMP("images/roof.bmp");
+    // woodTexture = LoadTexBMP("images/wood_1.bmp");
+    // leafTexture = LoadTexBMP("images/treeleaf.bmp");
     
     /* pass control for GLUT for events */
     glutMainLoop();
