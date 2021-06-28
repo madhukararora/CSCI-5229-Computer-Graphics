@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "random": "c"
+        "random": "c",
+        "cstdlib": "c",
+        "fstream": "c",
+        "*.tcc": "c"
     }
 }

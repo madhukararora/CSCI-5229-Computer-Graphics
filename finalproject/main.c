@@ -22,12 +22,12 @@
 
 //Globals
 int th = 0;             //  Azimuth of view angle
-int ph = 0;            //  Elevation of view angle
+int ph = 90;            //  Elevation of view angle
 int axes=1;           //  Display axes
 int fov = 58;        //  field of view for perspective
 
 double asp = 1;    //  aspect ratio
-double dim = 5.2;  // dimension of orthogonal box
+double dim = 4.0;  // dimension of orthogonal box
 double len = 2.0;  //length of axes
 
 //parameters for first person view
@@ -50,10 +50,11 @@ typedef enum{ ORTHOGONAL = 0, PERSPECTIVE,FIRSTPERSON}MODES_T;
 MODES_T mode = ORTHOGONAL;
 
 
-
-
-typedef enum{DIRTROAD, GRASS, }OBJECTS_T;
+typedef enum{DIRTROAD, GRASS, LAKE, }OBJECTS_T;
 OBJECTS_T object;
+
+float tx_X, tx_Y; // variables for applying texture coordinates to different objects
+
 
 // lighting parameters 
 int move      =   1;  // move light 
@@ -79,12 +80,19 @@ const float black[] = {0,0,0,1};
 
 
 // texture parameters
+
+// cabin 
 unsigned int exteriorWall;
 unsigned int interiorWall;
-unsigned int roadTexture;
 unsigned int roofTexture;
+
+
+// surrounding
+unsigned int roadTexture;
+unsigned int grassTexture;
 unsigned int leafTexture;
 unsigned int woodTexture;
+unsigned int lakeTexture;
 
 
 
@@ -257,7 +265,7 @@ static void cube(double x,double y,double z,
    // Define material for specular and emission
    glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
    glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white); // specular component as white
-   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
+  
    
   
    glPushMatrix(); //  Save transformation
@@ -265,54 +273,76 @@ static void cube(double x,double y,double z,
    glRotated(th,0,1,0);
    glScaled(dx,dy,dz);
 
+   if(object == DIRTROAD)
+   {
+       tx_X = 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,roadTexture);
+   }
+   else if(object == GRASS)
+   {
+       tx_X = 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,grassTexture);
+   }
+   else if(object == LAKE)
+   {
+       tx_X= 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,lakeTexture);
+   }
    
    glBegin(GL_QUADS);  // cube
    //  Front
    glNormal3f( 0, 0, 1);
    glTexCoord2f(0,0);glVertex3f(-1,-1, 1);
-   glTexCoord2f(1,0);glVertex3f(+1,-1, 1);
-   glTexCoord2f(1,1);glVertex3f(+1,+1, 1);
-   glTexCoord2f(0,1);glVertex3f(-1,+1, 1);
+   glTexCoord2f(tx_X,0);glVertex3f(+1,-1, 1);
+   glTexCoord2f(tx_X,tx_Y);glVertex3f(+1,+1, 1);
+   glTexCoord2f(0,tx_Y);glVertex3f(-1,+1, 1);
    
    //  Back
    glNormal3f( 0, 0,-1);
    glTexCoord2f(0,0);glVertex3f(+1,-1,-1);
-   glTexCoord2f(1,0);glVertex3f(-1,-1,-1);
-   glTexCoord2f(1,1);glVertex3f(-1,+1,-1);
-   glTexCoord2f(0,1);glVertex3f(+1,+1,-1);
+   glTexCoord2f(tx_X,0);glVertex3f(-1,-1,-1);
+   glTexCoord2f(tx_X,tx_Y);glVertex3f(-1,+1,-1);
+   glTexCoord2f(0,tx_Y);glVertex3f(+1,+1,-1);
    
    //  Right
    glNormal3f(+1, 0, 0);
    glTexCoord2f(0,0);glVertex3f(+1,-1,+1);
-   glTexCoord2f(1,0);glVertex3f(+1,-1,-1);
-   glTexCoord2f(1,1);glVertex3f(+1,+1,-1);
-   glTexCoord2f(0,1);glVertex3f(+1,+1,+1);
+   glTexCoord2f(tx_X,0);glVertex3f(+1,-1,-1);
+   glTexCoord2f(tx_X,tx_Y);glVertex3f(+1,+1,-1);
+   glTexCoord2f(0,tx_Y);glVertex3f(+1,+1,+1);
    
    //  Left
    glNormal3f(-1, 0, 0);
    glTexCoord2f(0,0);glVertex3f(-1,-1,-1);
-   glTexCoord2f(1,0);glVertex3f(-1,-1,+1);
-   glTexCoord2f(1,1);glVertex3f(-1,+1,+1);
-   glTexCoord2f(0,1);glVertex3f(-1,+1,-1);
+   glTexCoord2f(tx_X,0);glVertex3f(-1,-1,+1);
+   glTexCoord2f(tx_X,tx_Y);glVertex3f(-1,+1,+1);
+   glTexCoord2f(0,tx_Y);glVertex3f(-1,+1,-1);
   
    //  Top
    glNormal3f( 0,+1, 0);
    glTexCoord2f(0,0);glVertex3f(-1,+1,+1);
-   glTexCoord2f(1,0);glVertex3f(+1,+1,+1);
-   glTexCoord2f(1,1);glVertex3f(+1,+1,-1);
-   glTexCoord2f(0,1);glVertex3f(-1,+1,-1);
+   glTexCoord2f(tx_X,0);glVertex3f(+1,+1,+1);
+   glTexCoord2f(tx_X,tx_Y);glVertex3f(+1,+1,-1);
+   glTexCoord2f(0,tx_Y);glVertex3f(-1,+1,-1);
    
    //  Bottom
    glNormal3f( 0,-1, 0);
    glTexCoord2f(0,0);glVertex3f(-1,-1,-1);
-   glTexCoord2f(1,0);glVertex3f(+1,-1,-1);
-   glTexCoord2f(1,1);glVertex3f(+1,-1,+1);
-   glTexCoord2f(0,1);glVertex3f(-1,-1,+1);
+   glTexCoord2f(tx_X,0);glVertex3f(+1,-1,-1);
+   glTexCoord2f(tx_X,tx_Y);glVertex3f(+1,-1,+1);
+   glTexCoord2f(0,tx_Y);glVertex3f(-1,-1,+1);
    
    //  End
    glEnd();
    //  Undo transformations
    glPopMatrix();
+   glDisable(GL_TEXTURE_2D);
 }
 
 /* 
@@ -545,32 +575,19 @@ static void tree(double x, double y, double z,
                  double radius, double height)
 {
     //trunk
-    glColor3f(0.53,0.16,0.02); //brown
+    
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D,woodTexture);
     cylinder(x,y,z,0,90,radius/5,height);
     glDisable(GL_TEXTURE_2D);
 
     //leaves
-    glColor3f(0,0.5,0);  // green
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D,leafTexture);
     cone(x,y+height/2,z,0,-90,radius,height);
     glDisable(GL_TEXTURE_2D);
     
     
-}
-
-
-/**
- * @brief  create  a dirt road path as base
- */
-static void path(void)
-{
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D,roadTexture);
-    cube(0,0,0,1,0.05,2,0);
-    glDisable(GL_TEXTURE_2D);
 }
 
 
@@ -609,71 +626,51 @@ static void drawCabin(double x, double y, double z,
    glBindTexture(GL_TEXTURE_2D,exteriorWall);
 
 
-   // front
+   // side walls of the cabin along X-axis
    glBegin(GL_QUADS);
-   //glColor3f(0.85,0.53,0.1);
-
-   //L of window                             
-   glNormal3f(0,0,1);
+   glColor3f(0.85,0.53,0.1);
+                            
+   glNormal3f(0,0,1); // positive Z-axis
    glTexCoord2f(0,0);glVertex3f(-1,y,1);
-   glTexCoord2f(-0.6,0);glVertex3f(-0.6,y, 1);
-   glTexCoord2f(-0.6,1);glVertex3f(-0.6,+1, 1);
+   glTexCoord2f(-0.6,0);glVertex3f(1,y, 1);
+   glTexCoord2f(-0.6,1);glVertex3f(1,+1, 1);
    glTexCoord2f(0,1);glVertex3f(-1,+1, 1);
-
-   // R of window
-   glNormal3f(0,0,1);
-   glTexCoord2f(0,0);glVertex3f(0.6,y,1);
-   glTexCoord2f(tex_x,0);glVertex3f(+1,y, 1);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1, 1);
-   glTexCoord2f(0,tex_y);glVertex3f(0.6,+1, 1);
-
-   // Below window section of wall
-   glNormal3f(0,0,1);
-   glTexCoord2f(0,0);glVertex3f(-0.6,y,1);
-   glTexCoord2f(tex_x,0);glVertex3f(+0.6,y, 1);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,-0.55,1);
-   glTexCoord2f(0,tex_y);glVertex3f(-0.6,-0.55,1);
-
-   // above window section of wall
-   glNormal3f(0,0,1);
-   glTexCoord2f(0,0);glVertex3f(-0.6,0.5,1);
-   glTexCoord2f(tex_x,0);glVertex3f(+0.6,0.5,1);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,+1, 1);
-   glTexCoord2f(0,tex_y);glVertex3f(-0.6,+1,1);
-
    
-   //OUTSIDE : back wall of the cabin (along X-axis)
-   glNormal3f( 0, 0, -1);
+   //OUTSIDE : side wall of the cabin (along X-axis)
+   glNormal3f( 0, 0, -1); // negative z-axis
    glTexCoord2f(0,0);glVertex3f(+1,y,-1);
    glTexCoord2f(tex_x,0);glVertex3f(-1,y,-1);
    glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,-1);
    glTexCoord2f(0,tex_y);glVertex3f(+1,+1,-1);
 
-   //OUTSIDE : right side of the wall (along Z-axis)
-   glNormal3f( 1, 0, 0);
-   glTexCoord2f(0,0);glVertex3f(+1,y,+1);
-   glTexCoord2f(tex_x,0);glVertex3f(+1,y,-1);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,-1);
-   glTexCoord2f(0,tex_y);glVertex3f(+1,+1,+1);
-   
-   glEnd();
-
-
-   // Outside wall section without door (along Z-axis)
-   glBegin(GL_QUADS);
-   glColor3f(0.85,0.53,0.1);
+   //OUTSIDE : back side of the wall (along Z-axis)
    glNormal3f(-1, 0, 0);
    glTexCoord2f(0,0);glVertex3f(-1,y,-1);
-   glTexCoord2f(tex_x,0);glVertex3f(-1,y,0.5);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,0.5);
+   glTexCoord2f(tex_x,0);glVertex3f(-1,y,+1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,+1);
    glTexCoord2f(0,tex_y);glVertex3f(-1,+1,-1);
 
-   // Outside wall section above the door (along Z-axis)
-   glNormal3f(-1, 0, 0);
-   glTexCoord2f(0,0);glVertex3f(-1,0.5,0.5);
-   glTexCoord2f(tex_x,0);glVertex3f(-1,0.5,+1);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,+1);
-   glTexCoord2f(0,tex_y);glVertex3f(-1,+1,0.5);
+
+   glEnd();
+
+  
+  
+   // Outside wall section without door (along Z-axis)
+
+   glBegin(GL_QUADS);
+   glColor3f(0.85,0.53,0.1);
+   glNormal3f(+1, 0, 0); //positive x-axis
+   glTexCoord2f(0,0);glVertex3f(+1,y,+1);
+   glTexCoord2f(tex_x,0);glVertex3f(+1,y,-0.3);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,-0.3);
+   glTexCoord2f(0,tex_y);glVertex3f(+1,+1,+1);
+
+//    // Outside wall section above the door (along Z-axis)
+//    glNormal3f(+1, 0, 0);
+//    glTexCoord2f(0,0);glVertex3f(+1,0.8,-0.3);
+//    glTexCoord2f(tex_x,0);glVertex3f(+1,0.8,+1);
+//    glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,+1);
+//    glTexCoord2f(0,tex_y);glVertex3f(+1,+0.8,-0.3);
 
    glEnd();
    glDisable(GL_TEXTURE_2D);
@@ -691,96 +688,78 @@ static void drawCabin(double x, double y, double z,
 
 
    // interior back wall along X-axis
-   glNormal3f( 0, 0, +1);
+   glNormal3f( 0, 0, -1);
+   glTexCoord2f(0,0);glVertex3f(+1,y,+0.99);
+   glTexCoord2f(tex_x,0);glVertex3f(-1,y,+0.99);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,+0.99);
+   glTexCoord2f(0,tex_y);glVertex3f(+1,+1,+0.99);
+
+   // interior back wall along X-axis
+   glNormal3f(0, 0, +1);
    glTexCoord2f(0,0);glVertex3f(+1,y,-0.99);
    glTexCoord2f(tex_x,0);glVertex3f(-1,y,-0.99);
    glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,-0.99);
    glTexCoord2f(0,tex_y);glVertex3f(+1,+1,-0.99);
 
-   // Inside right side of the wall (along Z-axis)
-   glNormal3f(-1, 0, 0);
-   glTexCoord2f(0,0);glVertex3f(+0.99,y,+1);
-   glTexCoord2f(tex_x,0);glVertex3f(+0.99,y,-1);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.99,+1,-1);
-   glTexCoord2f(0,tex_y);glVertex3f(+0.99,+1,+1);
-
 
    // Inside wall section without door (along Z-axis)
    glNormal3f(+1, 0, 0);
-   glTexCoord2f(0,0);glVertex3f(-0.99,y,-1);
-   glTexCoord2f(tex_x,0);glVertex3f(-0.99,y,0.5);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,0.5);
+     glTexCoord2f(0,0);glVertex3f(-0.99,y,-1);
+   glTexCoord2f(tex_x,0);glVertex3f(-0.99,y,+1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,+1);
    glTexCoord2f(0,tex_y);glVertex3f(-0.99,+1,-1);
 
 
 
-   // Inside wall section above the door (along Z-axis)
-   glNormal3f(+1, 0, 0);
-   glTexCoord2f(0,0);glVertex3f(-0.99,0.5,0.5);
-   glTexCoord2f(tex_x,0);glVertex3f(-0.99,0.5,+1);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,+1);
-   glTexCoord2f(0,tex_y);glVertex3f(-0.99,+1,0.5);
-   
-
-
-   //L of window                             
-   glNormal3f(0,0,-1);
-   glTexCoord2f(0,0);glVertex3f(-1,y,+0.99);
-   glTexCoord2f(tex_x,0);glVertex3f(-0.6,y,+0.99);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(-0.6,+1,+0.99);
-   glTexCoord2f(0,tex_y);glVertex3f(-1,+1,+0.99);
-
-   // R of window
-   glNormal3f(0,0,-1);
-   glTexCoord2f(0,0);glVertex3f(0.6,y,+0.99);
-   glTexCoord2f(tex_x,0);glVertex3f(+1,y,+0.99);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,+0.99);
-   glTexCoord2f(0,tex_y);glVertex3f(0.6,+1,+0.99);
-
-   // Below window section of wall
-   glNormal3f(0,0,-1);
-   glTexCoord2f(0,0);glVertex3f(-0.6,y,+0.99);
-   glTexCoord2f(tex_x,0);glVertex3f(+0.6,y,+0.99);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,-0.55,+0.99);
-   glTexCoord2f(0,tex_y);glVertex3f(-0.6,-0.55,+0.99);
-
-   // above window section of wall
-   glNormal3f(0,0,-1);
-   glTexCoord2f(0,0);glVertex3f(-0.6,0.5,+0.99);
-   glTexCoord2f(tex_x,0);glVertex3f(+0.6,0.5,+0.99);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.6,+1,+0.99);
-   glTexCoord2f(0,tex_y);glVertex3f(-0.6,+1,+0.99);
-
-   glEnd();
-  //  glDisable(GL_TEXTURE_2D);
-
-
-
-
-   // Exterior top of the house
-   glBegin(GL_QUADS);
-   glColor3f(1.0,0,0);   
-   glNormal3f( 0, 1, 0);
-   glVertex3f(-1,+1,+1);
-   glVertex3f(+1,+1,+1);
-   glVertex3f(+1,+1,-1);
-   glVertex3f(-1,+1,-1);
-   glEnd();
-
-   // Exterior top of the house
-   glBegin(GL_QUADS);
-   glColor3f(1.0,1.0,1.0);   
-   glNormal3f( 0, -1, 0);
-   glVertex3f(-1,+0.99,+1);
-   glVertex3f(+1,+0.99,+1);
-   glVertex3f(+1,+0.99,-1);
-   glVertex3f(-1,+0.99,-1);
+//    // Inside wall section above the door (along Z-axis)
+   glNormal3f(-1, 0, 0); //negative x-axis
+   glTexCoord2f(0,0);glVertex3f(+0.99,y,+1);
+   glTexCoord2f(tex_x,0);glVertex3f(+0.99,y,-0.3);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.99,+1,-0.3);
+   glTexCoord2f(0,tex_y);glVertex3f(+0.99,+1,+1);
    
 
 
 
 
    glEnd();
+   glDisable(GL_TEXTURE_2D);
+
+    //Mattress inside cabin
+    glPushMatrix();
+	glTranslated(x,y,z);
+	glScaled(dx, dy, dz);
+	cube(x+4,y+0.2,z+0.3,0.25,0.05,1.1,0);
+	glPopMatrix();
+	
+	//chair 
+	glPushMatrix();
+	glTranslated(x,y,z);
+	glScaled(dx, dy, dz);
+	cube(x+4.65,y+0.2,z+0.8,0.1,0.05,0.5,0);
+	cube(x+4.65,y+0.4,z+1.4,0.1,0.2,0.1,0);
+	glPopMatrix();
+	
+
+//    // Exterior top of the house
+//    glBegin(GL_QUADS);
+//    glColor3f(1.0,0,0);   
+//    glNormal3f( 0, 1, 0);
+//    glVertex3f(-1,+1,+1);
+//    glVertex3f(+1,+1,+1);
+//    glVertex3f(+1,+1,-1);
+//    glVertex3f(-1,+1,-1);
+//    glEnd();
+
+//    // Exterior top of the house
+//    glBegin(GL_QUADS);
+//    glColor3f(1.0,1.0,1.0);   
+//    glNormal3f( 0, -1, 0);
+//    glVertex3f(-1,+0.99,+1);
+//    glVertex3f(+1,+0.99,+1);
+//    glVertex3f(+1,+0.99,-1);
+//    glVertex3f(-1,+0.99,-1);
+//    glEnd();
    
    
    glPopMatrix();
@@ -793,18 +772,54 @@ static void drawCabin(double x, double y, double z,
 
 
 
+static void drawforest(void)
+{
+
+    float x, z; // x - to traverse along the X-axis and z- to traverse along the Y-axis
+    const float y = 0.6;
+    for(z = 2.0; z >= -1.7; z = z-0.25)
+    {
+        for(x = 1.2; x <= 3.2; x = x+0.2)
+        {
+            if(z >= 1.25)
+                continue;
+            tree(x,y,z,0.1,0.5);
+        }
+        for(x = -3.4; x <= -1; x = x+0.2)
+        {
+            if((z <= 0.6) && (z >= -0.5))
+                continue;
+            tree(x,y,z,0.1,0.5);
+        }
+    }
+
+
+}
+
+
+
+
+
 void renderScene(void)
 {
-    const float base = 0;
+    const float base = 0.6;
    
-    path(); // draw a cube to make a dirt road. 
+    object = DIRTROAD;
+    cube(-0.25,0,0,3.25,0.1,2,0); // draw a cube to make a dirt road.
+    // cube(3,0,0,1.0,0.1,2,0); // forest area
+
+    drawforest(); // draw forest
+
+
+
+    // lake on the left side of the dirt road
+    object = LAKE;
+    cube(0,0.1,0,0.8,0.05,1.75,0);
    
-    // fracMountain(0.8,0.0,-5,  0.8,0.0,-4,  2.0,0.0,-4,  2.0,0.0,-5);
-    // fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
+    fracMountain(0.8,0.0,-5,  0.8,0.0,-4,  2.0,0.0,-4,  2.0,0.0,-5);
+    fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
 
-     // tree(0,-0.7,0, 0.2, 0.3);
-
-    //drawCabin(-1,base,-1,0.3,0.4,0.5,0);
+    drawCabin(-2.35,0,0,1.1,0.8,0.55,0);
     
 }
 
@@ -1008,6 +1023,7 @@ void special(int key,int x, int y)
                 else{
                 ph = (ph + 5) % 360;
                 }
+                break;
             //  PageUp key - increase dim
             case GLUT_KEY_PAGE_UP:
                 dim+= 0.1;
@@ -1121,7 +1137,8 @@ void key(unsigned char ch,int x, int y)
     //  Reset view angle
     if (ch == '0')
     {
-      th = ph = 0;
+      th = 0;
+      ph = 90;
     }
     //  Change field of view angle
     else if (ch == '-' && ch>1)
@@ -1210,12 +1227,17 @@ int main(int argc,char* argv[])
     glutKeyboardFunc(key);
 
     // Load the textures
+   
+    roadTexture = LoadTexBMP("images/mud.bmp");
+    grassTexture = LoadTexBMP("images/grass2.bmp");
+    woodTexture = LoadTexBMP("images/treestem.bmp");
+    leafTexture = LoadTexBMP("images/treeleaves.bmp");
+    lakeTexture = LoadTexBMP("images/lake.bmp");
+
+    roofTexture = LoadTexBMP("images/roof.bmp");
     exteriorWall = LoadTexBMP("images/brick.bmp");
     interiorWall = LoadTexBMP("images/housewall.bmp");
-    roadTexture = LoadTexBMP("images/mud.bmp");
-    roofTexture = LoadTexBMP("images/roof.bmp");
-    // woodTexture = LoadTexBMP("images/wood_1.bmp");
-    // leafTexture = LoadTexBMP("images/treeleaf.bmp");
+     
     
     /* pass control for GLUT for events */
     glutMainLoop();
