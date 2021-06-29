@@ -9,6 +9,9 @@
   I've borrowed most of the source code from the references provided in the class and other resource online.
   Links to referred material are attached with the code segment. 
 
+  References:
+  Fractal  mountain - https://bradleycarey.com/posts/2012-11-24-fractal-mountains-in-opengl-using-glut/
+
 */
 
 
@@ -50,7 +53,7 @@ typedef enum{ ORTHOGONAL = 0, PERSPECTIVE,FIRSTPERSON}MODES_T;
 MODES_T mode = ORTHOGONAL;
 
 
-typedef enum{DIRTROAD, GRASS, LAKE, }OBJECTS_T;
+typedef enum{DIRTROAD, GRASS, LAKE, MATTRESS, CHAIR}OBJECTS_T;
 OBJECTS_T object;
 
 float tx_X, tx_Y; // variables for applying texture coordinates to different objects
@@ -78,13 +81,14 @@ const float white[] = {1,1,1,1};
 const float black[] = {0,0,0,1};
 
 
-
 // texture parameters
 
 // cabin 
 unsigned int exteriorWall;
 unsigned int interiorWall;
 unsigned int roofTexture;
+unsigned int mattressTexture;
+unsigned int chairTexture;
 
 
 // surrounding
@@ -95,11 +99,189 @@ unsigned int woodTexture;
 unsigned int lakeTexture;
 
 
+// Fractal Tree
+
+int nBranches = 3; // number of branches
+float branch_leaf = 0.03; // when to sprout leaves - if length of branch is shorter than this draw leaves
+float branch_angle = 25; // angle of branches - between the vertical and the next branch
+float branch_ratio = 0.65; // length before branching
+float branch_shrink = 0.7; // branch radius shrink
+
+
+
+
+/*
+* Random float between min and max
+*
+*/
+float frand(float min, float max)
+{
+    return min+random()*(max-min)/RAND_MAX;
+}
+
+
+
+
+/*
+* Draw leaf
+*
+*/
+int leaf()
+{
+    // bright green with two sided lighting
+    glColor3f(0.1,0.8,0.1);
+    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE,1); // leaf to light up on both sides
+    
+    // Normal is for forward face
+    glNormal3f(0,0,1);
+    glBegin(GL_QUADS);
+    glVertex3f(0.0,0.0,0.0);
+    glVertex3f(+0.03,0.03,0.0);
+    glVertex3f(0.0,0.1,0.0);
+    glVertex3f(-0.03,0.03,0.0);
+    glEnd();
+
+    // Disable two sided lighting for performance
+    glLightModeli(GL_LIGHT_MODEL_TWO_SIDE,0);
+
+    //Triangle count 
+    return 2;
+}
+
+
+
+/*
+* Draw  a branch as a hollow cylinder
+*  of length l radius r
+*/
+int branch(float l, float r)
+{
+    // scale to dimensions
+    glPushMatrix();
+    glScaled(r,l,r);
+
+    //Bark texture
+    glColor3f(1,1,1);
+    glBindTexture(GL_TEXTURE_2D,woodTexture); 
+    glEnable(GL_TEXTURE_2D);
+
+    //Draw truncated cone
+    //Face cull for performance - cut down the number of triangles needed to draw
+    glEnable(GL_CULL_FACE);
+    glBegin(GL_QUAD_STRIP);
+    for(int th=0; th<=360; th+=30)
+    {
+        //Normal for truncated cone
+        glNormal3f(Cos(th),1-branch_shrink,Sin(th));
+
+        //Root
+        glTexCoord2d(th/120.0,0);
+        glVertex3f(Cos(th),0,Sin(th));
+        
+        //End (shrunk)
+        glTexCoord2d((th/120.0),(l/r));
+        glVertex3f(branch_shrink*Cos(th),1,branch_shrink*Sin(th));
+    }
+    glEnd();
+
+    //Undo
+    glDisable(GL_CULL_FACE);
+    glDisable(GL_TEXTURE_2D);
+    glPopMatrix();
+
+    //triangle count
+    return (2*360)/30;
+
+}
+
+/*
+* Draw a tree branch of length l0
+* and radius r0
+*
+*/
+int tree_branch(float l0, float r0)
+{
+    // randomize length +/- 15%
+    float l = l0*frand(0.85,1.15);
+
+    // randomize angle 
+    float angle = frand(0,360.0/nBranches);
+
+    // save transformation since this function is called recursively
+    glPushMatrix();
+
+    // Draw the actual branch 
+    int ntri = branch(l,r0);
+
+    // Update origin to the end of the branch
+    glTranslatef(0,l,0);
+
+    // leaves at the end of the branch
+    if(l < branch_leaf)
+    {
+        // Initial leaf angle is random
+        glRotatef(angle,0,1,0);
+        // Draw num leaves equally rotated
+        for(int k = 0; k < nBranches; k++)
+        {
+            glRotatef(360.0/nBranches,0,1,0);
+            ntri += leaf();
+        }
+
+    }
+    else
+    {
+        float r = branch_shrink*r0;
+        for(int  k = 0; k < nBranches; k++)
+        {
+            glPushMatrix();
+            glRotatef(angle+k*360.0/nBranches,0,1,0);
+            glRotatef(branch_angle,1,0,0);
+            ntri = tree_branch(branch_ratio*l0,r);
+            glPopMatrix();
+        }
+    }
+
+    // Undo transformations
+    glPopMatrix();
+
+    //return triangle count
+    return ntri;
+
+
+}
+
+
+
+void createTree(double x, double y, double z, double h, double r)
+{
+    glTranslated(x,y,z);
+    srand(0.1); // restart random with same value every frame
+    int ntri = tree_branch(h,r);
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 // Mountain 
-
 double tolerance = 0.015;
 double lightPos[3] = {50,35,1.95};
 int Level = 5;
@@ -227,6 +409,7 @@ void drawXYZ(void)
 {
     glPointSize(10);
     glColor3f(1.0,1.0,1.0); //color - white
+    glTranslated(-1,0,-1);
     glBegin(GL_LINES);
     glVertex3d(0,0,0);
     glVertex3d(len,0,0); //X-axis
@@ -293,6 +476,20 @@ static void cube(double x,double y,double z,
        tx_Y = 1.0;
        glEnable(GL_TEXTURE_2D);
        glBindTexture(GL_TEXTURE_2D,lakeTexture);
+   }
+   else if(object == MATTRESS)
+   {
+       tx_X = 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,mattressTexture);
+   }
+   else if(object == CHAIR)
+   {
+       tx_X= 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,chairTexture);
    }
    
    glBegin(GL_QUADS);  // cube
@@ -539,31 +736,7 @@ static void drawRoof(double x, double y, double z,
    glPopMatrix();
 }
 
-/**
- * @brief draw a house at (x,y,z) of width, height and length
- *        rotate th about the y-axis
- * @param x 
- * @param y 
- * @param z 
- * @param width 
- * @param height 
- * @param length 
- * @param th 
- */
-static void house(double x,double y, double z, 
-                  double width, double height, double length,
-                  double th)
-{
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D,exteriorWall);
-    cube(x,y,z,width,height,length,th);
-    glDisable(GL_TEXTURE_2D);
-    
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D,roofTexture);
-    drawRoof(x,y+height,z,width,height/2,length+0.1,th);
-    glDisable(GL_TEXTURE_2D);
-}
+
 
 /*
 * Draw a tree
@@ -589,10 +762,6 @@ static void tree(double x, double y, double z,
     
     
 }
-
-
-
-
 
 /**
  * @brief  create a cabin at (x,y,z)
@@ -719,12 +888,10 @@ static void drawCabin(double x, double y, double z,
    glTexCoord2f(0,tex_y);glVertex3f(+0.99,+1,+1);
    
 
-
-
-
    glEnd();
    glDisable(GL_TEXTURE_2D);
 
+    object = MATTRESS;
     //Mattress inside cabin
     glPushMatrix();
 	glTranslated(x,y,z);
@@ -732,34 +899,15 @@ static void drawCabin(double x, double y, double z,
 	cube(x+4,y+0.2,z+0.3,0.25,0.05,1.1,0);
 	glPopMatrix();
 	
+
 	//chair 
+    object = CHAIR;
 	glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
 	cube(x+4.65,y+0.2,z+0.8,0.1,0.05,0.5,0);
 	cube(x+4.65,y+0.4,z+1.4,0.1,0.2,0.1,0);
 	glPopMatrix();
-	
-
-//    // Exterior top of the house
-//    glBegin(GL_QUADS);
-//    glColor3f(1.0,0,0);   
-//    glNormal3f( 0, 1, 0);
-//    glVertex3f(-1,+1,+1);
-//    glVertex3f(+1,+1,+1);
-//    glVertex3f(+1,+1,-1);
-//    glVertex3f(-1,+1,-1);
-//    glEnd();
-
-//    // Exterior top of the house
-//    glBegin(GL_QUADS);
-//    glColor3f(1.0,1.0,1.0);   
-//    glNormal3f( 0, -1, 0);
-//    glVertex3f(-1,+0.99,+1);
-//    glVertex3f(+1,+0.99,+1);
-//    glVertex3f(+1,+0.99,-1);
-//    glVertex3f(-1,+0.99,-1);
-//    glEnd();
    
    
    glPopMatrix();
@@ -781,7 +929,7 @@ static void drawforest(void)
     {
         for(x = 1.2; x <= 3.2; x = x+0.2)
         {
-            if(z >= 1.25)
+            if(z >= 0.25)
                 continue;
             tree(x,y,z,0.1,0.5);
         }
@@ -792,7 +940,6 @@ static void drawforest(void)
             tree(x,y,z,0.1,0.5);
         }
     }
-
 
 }
 
@@ -810,16 +957,18 @@ void renderScene(void)
 
     drawforest(); // draw forest
 
-
-
-    // lake on the left side of the dirt road
+   // lake on the left side of the dirt road
     object = LAKE;
     cube(0,0.1,0,0.8,0.05,1.75,0);
    
-    fracMountain(0.8,0.0,-5,  0.8,0.0,-4,  2.0,0.0,-4,  2.0,0.0,-5);
-    fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
+    // fracMountain(0.8,0.0,-5,  0.8,0.0,-4,  2.0,0.0,-4,  2.0,0.0,-5);
+    // fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
 
     drawCabin(-2.35,0,0,1.1,0.8,0.55,0);
+    createTree(2.9,0,1.2,0.5,0.05);
+    createTree(-1,0,0.1,0.5,0.05);
+    createTree(-1,0,0.1,0.4,0.05);
+    // createTree(0,0,0.4,0.5,0.1);
     
 }
 
@@ -944,14 +1093,18 @@ void display(void)
         glDisable(GL_LIGHTING);
 
 
-   
+    
+    // glTranslated(0,0,0);
+    // srand(0.1); // restart random with same value every frame
     renderScene();
 
-    /* draw the axis */
+     /* draw the axis */
     glDisable(GL_LIGHTING); 
     if(axes){
         drawXYZ();
     }
+
+   
     
     
     /* Sanity check */
@@ -1230,13 +1383,15 @@ int main(int argc,char* argv[])
    
     roadTexture = LoadTexBMP("images/mud.bmp");
     grassTexture = LoadTexBMP("images/grass2.bmp");
-    woodTexture = LoadTexBMP("images/treestem.bmp");
+    woodTexture = LoadTexBMP("images/bark.bmp");
     leafTexture = LoadTexBMP("images/treeleaves.bmp");
     lakeTexture = LoadTexBMP("images/lake.bmp");
 
     roofTexture = LoadTexBMP("images/roof.bmp");
     exteriorWall = LoadTexBMP("images/brick.bmp");
     interiorWall = LoadTexBMP("images/housewall.bmp");
+    mattressTexture = LoadTexBMP("images/mattress.bmp");
+    chairTexture = LoadTexBMP("images/chair.bmp");
      
     
     /* pass control for GLUT for events */

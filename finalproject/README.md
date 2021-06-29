@@ -1,5 +1,5 @@
 # CSCI 5229 Computer Graphics Summer 2021
-## Homework 3 - Lighting and Textures
+## Final Project - Cabin in the Woods
 Submitted By : Madhukar Arora
 
 
@@ -23,10 +23,10 @@ OS Requirements : Ubuntu 20.04 with Open GL installed and gcc C compiler.
 3. Open terminal in this directory.
 4. Make commands 
 
-   ***make*** : This will generate and executable called ***hw3***.
+   ***make*** : This will generate an executable called final******.
    
    ***make clean*** : This will remove all executables and files generated as part of compilation.
-5. To run the application : type in your terminal ***./hw2*** .
+5. To run the application : type in your terminal ***./final*** .
 
 ### Working with the application
 
@@ -68,9 +68,9 @@ OS Requirements : Ubuntu 20.04 with Open GL installed and gcc C compiler.
 
 ***B***: Increase shininess levels.
 
-***UP Arrow*** or ***DOWN Arrow*** : Look down or up using these keys.
+***UP Arrow*** or ***DOWN Arrow*** : Look down or up using these keys in Orthogonal/Perspective Mode. Move forward or backward in First Person View.
 
-***LEFT Arrow*** or ***RIGHT Arrow*** : Look left or right using these keys.
+***LEFT Arrow*** or ***RIGHT Arrow*** : Look left or right using these keys. 
 
 ***PAGE UP*** or ***PAGE DOWN*** : Increase/Decrease the dimension of the orthogonal view box.
 
@@ -82,15 +82,15 @@ OS Requirements : Ubuntu 20.04 with Open GL installed and gcc C compiler.
 
 ***F8***: Toggle ball increment.
 
-***w*** : Move forward in the scene in First Person Mode.
-
-***s*** : Move backward in the scene in First Person Mode.
-
 ***+*** : Increase the Field of View in Orthogonal/Perspective Mode  or Increase the window dimension in First Person Mode.
 
 ***-*** : Decrease the Field of View in Orthogonal/Perspective Mode  or Decrease the window dimension in First Person Mode.
 
 
-### Time taken to complete the assignment 
+### Progress made so far 
 
-It took about 3 days for me to complete this assignment.
+I took a significant amount of time figuring out creating the different components and how to place them in the three dimensional space. I have also been looking into creating fractal mountains and trees to make them more realistic but have not quite been successful. 
+
+### Things left to do
+
+I plan on adding the door to the cabin, and a bridge across the lake in my scene. The bridge will overlook the mountains and also serve as a view point for the scene. I've included the code for creating mountains (generated using fractals). There is an issue with them resizing. I am not quite able to figure out the issue and would appreciate any help with them. 
