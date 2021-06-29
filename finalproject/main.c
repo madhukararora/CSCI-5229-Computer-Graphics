@@ -81,6 +81,13 @@ const float white[] = {1,1,1,1};
 const float black[] = {0,0,0,1};
 
 
+// door
+int doorOpen = 1; // initially door is closed.
+
+
+
+
+
 // texture parameters
 
 // cabin 
@@ -90,6 +97,8 @@ unsigned int floorTexture;
 unsigned int roofTexture;
 unsigned int mattressTexture;
 unsigned int chairTexture;
+unsigned int doorTexture;
+
 
 
 // surrounding
@@ -267,24 +276,6 @@ void createTree(double x, double y, double z, double h, double r)
 
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // Mountain 
@@ -776,7 +767,7 @@ static void drawCabin(double x, double y, double z,
                  double dx, double dy, double dz,
                  double th)
 {
-    int tex_x = 3, tex_y = 1;
+    int tex_x = 2, tex_y = 1;
     
     glPushMatrix();
     glTranslated(x,y,z);
@@ -834,6 +825,43 @@ static void drawCabin(double x, double y, double z,
    glTexCoord2f(0,tex_y);glVertex3f(+1,+1,+1);
    glEnd();
    glDisable(GL_TEXTURE_2D);
+
+
+   // Draw closed door
+   if(!doorOpen){
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,doorTexture);
+    glBegin(GL_QUADS);
+    glNormal3f(+1,0,0); // positive x-axis
+    glTexCoord2f(0,0);glVertex3f(+1,y,-0.29);
+    glTexCoord2f(0,1);glVertex3f(+1,y,-1.0);
+    glTexCoord2f(1,0);glVertex3f(+1,1,-1.0);
+    glTexCoord2f(0,1);glVertex3f(+1,+1,-0.29); //length of door - -0.29 + 1.0 = 0.71
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+   }
+   else
+   {
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D,doorTexture);
+        glBegin(GL_QUADS);
+        // glColor3f(1,1,0);
+        glNormal3f(0,0,-1); // negative z-axis
+        glTexCoord2f(0,0);glVertex3f(+1,y,-0.29);
+        glTexCoord2f(0,1);glVertex3f(+1,1,-0.29);
+        glTexCoord2f(1,0);glVertex3f(0.29,1,-0.29);     // 1-x = 0.71 // x = 0.29
+        glTexCoord2f(0,1);glVertex3f(0.29,y,-0.29);
+        glEnd();
+        glDisable(GL_TEXTURE_2D);
+   }
+
+
+
+
+
+
+
+
 
 
  // draw floor 
@@ -1302,6 +1330,10 @@ void key(unsigned char ch,int x, int y)
   {
       axes = 1-axes;
   }
+  else if(ch == 'q')// open the door
+  {
+      doorOpen = 1-doorOpen;
+  }
   else if (ch == 'm' || ch == 'M') // change between different modes
   {
     mode = (mode+1)%3;
@@ -1455,7 +1487,6 @@ int main(int argc,char* argv[])
     // Load the textures
    
     roadTexture = LoadTexBMP("images/soil.bmp");
-    grassTexture = LoadTexBMP("images/grass2.bmp");
     woodTexture = LoadTexBMP("images/bark.bmp");
     leafTexture = LoadTexBMP("images/treeleaves.bmp");
     lakeTexture = LoadTexBMP("images/lake.bmp");
@@ -1466,6 +1497,7 @@ int main(int argc,char* argv[])
     mattressTexture = LoadTexBMP("images/mattress.bmp");
     chairTexture = LoadTexBMP("images/chair.bmp");
     floorTexture = LoadTexBMP("images/floor.bmp");
+    doorTexture = LoadTexBMP("images/door.bmp");
 
      
     
