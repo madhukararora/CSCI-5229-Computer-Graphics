@@ -86,6 +86,7 @@ const float black[] = {0,0,0,1};
 // cabin 
 unsigned int exteriorWall;
 unsigned int interiorWall;
+unsigned int floorTexture;
 unsigned int roofTexture;
 unsigned int mattressTexture;
 unsigned int chairTexture;
@@ -101,13 +102,18 @@ unsigned int lakeTexture;
 
 // Fractal Tree
 
-int nBranches = 3; // number of branches
-float branch_leaf = 0.03; // when to sprout leaves - if length of branch is shorter than this draw leaves
-float branch_angle = 25; // angle of branches - between the vertical and the next branch
-float branch_ratio = 0.65; // length before branching
+int nBranches = 5; // number of branches
+float branch_leaf = 0.1; // when to sprout leaves - if length of branch is shorter than this draw leaves
+float branch_angle = 20; // angle of branches - between the vertical and the next branch
+float branch_ratio = 0.69; // length before branching
 float branch_shrink = 0.7; // branch radius shrink
 
-
+#define MAXQUADS 300
+int phaseInc=10;
+unsigned long int phaseAngle=5;
+double stepSize=1;
+double vertex[MAXQUADS][MAXQUADS][3];
+double normal[MAXQUADS][MAXQUADS][3];
 
 
 /*
@@ -284,8 +290,6 @@ void createTree(double x, double y, double z, double h, double r)
 // Mountain 
 double tolerance = 0.015;
 double lightPos[3] = {50,35,1.95};
-int Level = 5;
-
 
 double randomNormal (double mu, double sigma)
 {
@@ -335,7 +339,6 @@ void fracMountain(float x1, float y1, float z1, float x2, float y2, float z2, fl
     }
     else
     {
-        //printf("perim %f tolerance %f\n",perim, tolerance);
         double r1 = (double)randomNormal(0.041, 0.1);
         double r2 = (double)randomNormal(0.0,   0.01);
         double r3 = (double)randomNormal(0.0,   0.01);
@@ -757,7 +760,7 @@ static void tree(double x, double y, double z,
     //leaves
     glEnable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D,leafTexture);
-    cone(x,y+height/2,z,0,-90,radius,height);
+    cone(x,y+height/4,z,0,-90,radius,height*1.5);
     glDisable(GL_TEXTURE_2D);
     
     
@@ -787,8 +790,6 @@ static void drawCabin(double x, double y, double z,
 
 
 
-   // TO DO: add textures to the cabin
-
    // Add wooden wall texture to outside walls
    //OUTSIDE : front wall of the cabin  (along X-axis)
    glEnable(GL_TEXTURE_2D);
@@ -797,7 +798,6 @@ static void drawCabin(double x, double y, double z,
 
    // side walls of the cabin along X-axis
    glBegin(GL_QUADS);
-   glColor3f(0.85,0.53,0.1);
                             
    glNormal3f(0,0,1); // positive Z-axis
    glTexCoord2f(0,0);glVertex3f(-1,y,1);
@@ -827,22 +827,29 @@ static void drawCabin(double x, double y, double z,
    // Outside wall section without door (along Z-axis)
 
    glBegin(GL_QUADS);
-   glColor3f(0.85,0.53,0.1);
    glNormal3f(+1, 0, 0); //positive x-axis
    glTexCoord2f(0,0);glVertex3f(+1,y,+1);
    glTexCoord2f(tex_x,0);glVertex3f(+1,y,-0.3);
    glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,-0.3);
    glTexCoord2f(0,tex_y);glVertex3f(+1,+1,+1);
-
-//    // Outside wall section above the door (along Z-axis)
-//    glNormal3f(+1, 0, 0);
-//    glTexCoord2f(0,0);glVertex3f(+1,0.8,-0.3);
-//    glTexCoord2f(tex_x,0);glVertex3f(+1,0.8,+1);
-//    glTexCoord2f(tex_x,tex_y);glVertex3f(+1,+1,+1);
-//    glTexCoord2f(0,tex_y);glVertex3f(+1,+0.8,-0.3);
-
    glEnd();
    glDisable(GL_TEXTURE_2D);
+
+
+ // draw floor 
+   glEnable(GL_TEXTURE_2D);
+   glBindTexture(GL_TEXTURE_2D,floorTexture);
+   glBegin(GL_QUADS);
+   glNormal3f(0,-1,0); //positive y-axis
+    // glColor3f(1.0,1.0,0.0);
+   glTexCoord2f(0,0);glVertex3f(-1,y+0.13,+1);
+   glTexCoord2f(tex_x,0);glVertex3f(+1,y+0.13,+1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+1,y+0.13,-1);
+   glTexCoord2f(0,tex_y);glVertex3f(-1,y+0.13,-1);
+   glEnd();
+   glDisable(GL_TEXTURE_2D);
+
+
    
    
 // Inner walls - adding inner walls to add different texture to interior
@@ -853,8 +860,6 @@ static void drawCabin(double x, double y, double z,
    
    // Inside wall (front) of the cabin along X-axis
    glBegin(GL_QUADS);
-   glColor3f(1,1,1);
-
 
    // interior back wall along X-axis
    glNormal3f( 0, 0, -1);
@@ -943,6 +948,51 @@ static void drawforest(void)
 
 }
 
+void genVerticesAndNormals()
+{ 
+	int i,j;
+	double x,y,z,t,n;
+	t =- MAXQUADS*stepSize/2.0;
+	for (i=0;i<MAXQUADS;i++)
+	{
+		y = t+(double)i*stepSize;
+		for (j=0;j<MAXQUADS;j++)
+		{
+			x =t+(double)j*stepSize;
+			z =sin((x*x+y*y-phaseAngle)/100.0);
+			n =cos((x*x+y*y-phaseAngle)/100.0);
+			vertex[i][j][0] = x;
+			vertex[i][j][1] = y;
+			vertex[i][j][2] = z;
+			normal[i][j][0] = x*n;
+			normal[i][j][1] = y*n;
+			normal[i][j][2] = 1;
+		}
+	}
+}
+
+void drawQuadsForWaves()
+{ 
+	int i,j;
+	for (i=0; i<MAXQUADS-1; i++){
+		for (j=0; j<MAXQUADS-1; j++)
+		{ 
+			glBegin(GL_QUADS);
+			glNormal3dv(normal[i][j]);
+			glVertex3dv(vertex[i][j]);
+			
+			glNormal3dv(normal[i][j+1]);
+			glVertex3dv(vertex[i][j+1]);
+			
+			glNormal3dv(normal[i+1][j+1]);
+			glVertex3dv(vertex[i+1][j+1]);
+			
+			glNormal3dv(normal[i+1][j]);
+			glVertex3dv(vertex[i+1][j]);
+			glEnd();
+		}	
+	}
+}
 
 
 
@@ -959,16 +1009,38 @@ void renderScene(void)
 
    // lake on the left side of the dirt road
     object = LAKE;
+
     cube(0,0.1,0,0.8,0.05,1.75,0);
+
+    //waves
+    float diffuse[] = {0.28,0.46,1.0,1.0};
+	float specular[] = {1.0,1.0,1.0,1.0};
+	float shininess[] = {20.0};   
+	glMaterialfv(GL_FRONT_AND_BACK,GL_DIFFUSE,diffuse);
+	glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,specular);
+	glMaterialfv(GL_FRONT_AND_BACK,GL_SHININESS,shininess);
+	
+	glPushMatrix();
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_NORMALIZE);
+	glTranslated(0,0.145,0);
+	glScaled(0.0053,0.013,0.0116);
+	glRotatef(90, 0.01, 0.0, 0.0);	 
+	genVerticesAndNormals();
+	drawQuadsForWaves();
+	glDisable(GL_LIGHTING);
+	glPopMatrix();
    
-    // fracMountain(0.8,0.0,-5,  0.8,0.0,-4,  2.0,0.0,-4,  2.0,0.0,-5);
-    // fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
+//     //fracMountain(-3,0.0,-1,  1.8,0.0,-1,  2.0,0.0,-1,  4.0,0.0,-1);
+//     //fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
 
     drawCabin(-2.35,0,0,1.1,0.8,0.55,0);
     createTree(2.9,0,1.2,0.5,0.05);
     createTree(-1,0,0.1,0.5,0.05);
     createTree(-1,0,0.1,0.4,0.05);
-    // createTree(0,0,0.4,0.5,0.1);
+    //createTree(0,0,0.4,0.5,0.1);
     
 }
 
@@ -1125,6 +1197,7 @@ void idle(void) //DO NOT MODIFY
     /* spin angle - 90 degrees/second */
     zh = fmod(90*t,360);
 
+     phaseAngle += phaseInc;
     /* update display */
     glutPostRedisplay();
 }
@@ -1381,7 +1454,7 @@ int main(int argc,char* argv[])
 
     // Load the textures
    
-    roadTexture = LoadTexBMP("images/mud.bmp");
+    roadTexture = LoadTexBMP("images/soil.bmp");
     grassTexture = LoadTexBMP("images/grass2.bmp");
     woodTexture = LoadTexBMP("images/bark.bmp");
     leafTexture = LoadTexBMP("images/treeleaves.bmp");
@@ -1392,6 +1465,8 @@ int main(int argc,char* argv[])
     interiorWall = LoadTexBMP("images/housewall.bmp");
     mattressTexture = LoadTexBMP("images/mattress.bmp");
     chairTexture = LoadTexBMP("images/chair.bmp");
+    floorTexture = LoadTexBMP("images/floor.bmp");
+
      
     
     /* pass control for GLUT for events */
