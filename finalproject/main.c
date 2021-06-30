@@ -53,7 +53,7 @@ typedef enum{ ORTHOGONAL = 0, PERSPECTIVE,FIRSTPERSON}MODES_T;
 MODES_T mode = ORTHOGONAL;
 
 
-typedef enum{DIRTROAD, GRASS, LAKE, MATTRESS, CHAIR}OBJECTS_T;
+typedef enum{DIRTROAD, GRASS, LAKE, COT, MATTRESS, CHAIR, BENCH,}OBJECTS_T;
 OBJECTS_T object;
 
 float tx_X, tx_Y; // variables for applying texture coordinates to different objects
@@ -95,6 +95,7 @@ unsigned int exteriorWall;
 unsigned int interiorWall;
 unsigned int floorTexture;
 unsigned int roofTexture;
+unsigned int cotWoodTexture;
 unsigned int mattressTexture;
 unsigned int chairTexture;
 unsigned int doorTexture;
@@ -107,6 +108,8 @@ unsigned int grassTexture;
 unsigned int leafTexture;
 unsigned int woodTexture;
 unsigned int lakeTexture;
+unsigned int fenceTexture;
+unsigned int benchTexture;
 
 
 // Fractal Tree
@@ -452,8 +455,8 @@ static void cube(double x,double y,double z,
 
    if(object == DIRTROAD)
    {
-       tx_X = 1.0;
-       tx_Y = 1.0;
+       tx_X = 5.0;
+       tx_Y = 5.0;
        glEnable(GL_TEXTURE_2D);
        glBindTexture(GL_TEXTURE_2D,roadTexture);
    }
@@ -471,6 +474,13 @@ static void cube(double x,double y,double z,
        glEnable(GL_TEXTURE_2D);
        glBindTexture(GL_TEXTURE_2D,lakeTexture);
    }
+   else if(object == COT)
+   {
+       tx_X = 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,cotWoodTexture);
+   }
    else if(object == MATTRESS)
    {
        tx_X = 1.0;
@@ -484,6 +494,14 @@ static void cube(double x,double y,double z,
        tx_Y = 1.0;
        glEnable(GL_TEXTURE_2D);
        glBindTexture(GL_TEXTURE_2D,chairTexture);
+   }
+   else if(object == BENCH)
+   {
+       tx_X= 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,benchTexture);
+
    }
    
    glBegin(GL_QUADS);  // cube
@@ -676,8 +694,8 @@ static void triangle(vtx A, vtx B, vtx C)
    glNormal3f(Nx,Ny,Nz);
    glBegin(GL_TRIANGLES);
    glTexCoord2f(0,0);glVertex3f(A.x,A.y,A.z);
-   glTexCoord2f(0.5,0);glVertex3f(B.x,B.y,B.z);
-   glTexCoord2f(0,1.5);glVertex3f(C.x,C.y,C.z);
+   glTexCoord2f(3,0);glVertex3f(B.x,B.y,B.z);
+   glTexCoord2f(0,5);glVertex3f(C.x,C.y,C.z);
    glEnd();
 }
 
@@ -767,7 +785,7 @@ static void drawCabin(double x, double y, double z,
                  double dx, double dy, double dz,
                  double th)
 {
-    int tex_x = 2, tex_y = 1;
+    int tex_x = 4, tex_y = 2;
     
     glPushMatrix();
     glTranslated(x,y,z);
@@ -792,9 +810,9 @@ static void drawCabin(double x, double y, double z,
                             
    glNormal3f(0,0,1); // positive Z-axis
    glTexCoord2f(0,0);glVertex3f(-1,y,1);
-   glTexCoord2f(-0.6,0);glVertex3f(1,y, 1);
-   glTexCoord2f(-0.6,1);glVertex3f(1,+1, 1);
-   glTexCoord2f(0,1);glVertex3f(-1,+1, 1);
+   glTexCoord2f(tex_x,0);glVertex3f(1,y, 1);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(1,+1, 1);
+   glTexCoord2f(0,tex_y);glVertex3f(-1,+1, 1);
    
    //OUTSIDE : side wall of the cabin (along X-axis)
    glNormal3f( 0, 0, -1); // negative z-axis
@@ -834,8 +852,8 @@ static void drawCabin(double x, double y, double z,
     glBegin(GL_QUADS);
     glNormal3f(+1,0,0); // positive x-axis
     glTexCoord2f(0,0);glVertex3f(+1,y,-0.29);
-    glTexCoord2f(0,1);glVertex3f(+1,y,-1.0);
-    glTexCoord2f(1,0);glVertex3f(+1,1,-1.0);
+    glTexCoord2f(1,0);glVertex3f(+1,y,-1.0);
+    glTexCoord2f(1,1);glVertex3f(+1,1,-1.0);
     glTexCoord2f(0,1);glVertex3f(+1,+1,-0.29); //length of door - -0.29 + 1.0 = 0.71
     glEnd();
     glDisable(GL_TEXTURE_2D);
@@ -848,8 +866,8 @@ static void drawCabin(double x, double y, double z,
         // glColor3f(1,1,0);
         glNormal3f(0,0,-1); // negative z-axis
         glTexCoord2f(0,0);glVertex3f(+1,y,-0.29);
-        glTexCoord2f(0,1);glVertex3f(+1,1,-0.29);
-        glTexCoord2f(1,0);glVertex3f(0.29,1,-0.29);     // 1-x = 0.71 // x = 0.29
+        glTexCoord2f(1,0);glVertex3f(+1,1,-0.29);
+        glTexCoord2f(1,1);glVertex3f(0.29,1,-0.29);     // 1-x = 0.71 // x = 0.29
         glTexCoord2f(0,1);glVertex3f(0.29,y,-0.29);
         glEnd();
         glDisable(GL_TEXTURE_2D);
@@ -924,12 +942,21 @@ static void drawCabin(double x, double y, double z,
    glEnd();
    glDisable(GL_TEXTURE_2D);
 
+    object = COT;
+    // Bedframe inside cabin base
+    glPushMatrix();
+	glTranslated(x,y,z);
+	glScaled(dx, dy, dz);
+	cube(x+4,y+0.3,z-0.3,0.23,0.03,0.95,0);
+	glPopMatrix();
+	
+
     object = MATTRESS;
     //Mattress inside cabin
     glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+4,y+0.2,z+0.3,0.25,0.05,1.1,0);
+	cube(x+4,y+0.40,z-0.3,0.2,0.04,0.8,0);
 	glPopMatrix();
 	
 
@@ -938,9 +965,14 @@ static void drawCabin(double x, double y, double z,
 	glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+4.65,y+0.2,z+0.8,0.1,0.05,0.5,0);
-	cube(x+4.65,y+0.4,z+1.4,0.1,0.2,0.1,0);
-	glPopMatrix();
+	cube(x+4.4,y+0.5,z+0.8,0.05,0.05,0.4,0);
+	cube(x+4.4,y+0.7,z+1.1,0.05,0.2,0.1,0);
+    //chair legs
+    cube(x+4.445,y+0.3,z+1.15,0.01,0.2,0.05,0);
+    cube(x+4.355,y+0.3,z+1.15,0.01,0.2,0.05,0);
+    cube(x+4.445,y+0.3,z+0.45,0.01,0.2,0.05,0);
+    cube(x+4.355,y+0.3,z+0.45,0.01,0.2,0.05,0);
+   	glPopMatrix();
    
    
    glPopMatrix();
@@ -951,7 +983,23 @@ static void drawCabin(double x, double y, double z,
 
 }
 
-
+static void drawViewBench(double x, double y, double z, 
+                 double dx, double dy, double dz,
+                 double th)
+{
+    glPushMatrix();
+    glTranslated(x,y,z);
+    glRotated(th,0,1,0);
+    glScaled(dx,dy,dz);
+    // glColor3f(1,1,1);
+    //bench base
+    object = BENCH;
+    cube(x,y,z,0.25,0.1,0.4,0);
+    //bench legs
+    cube(x+0.05,y-0.23,z+0.18,0.05,0.35,0.05,0);
+    cube(x+0.05,y-0.23,z-0.18,0.05,0.35,0.05,0);
+   	glPopMatrix();
+}
 
 static void drawforest(void)
 {
@@ -1024,23 +1072,89 @@ void drawQuadsForWaves()
 
 
 
+/*
+* Draw a fence at x,y,z 
+* of length dx, height dy and width dz
+* rotated th about the Y-axis
+*
+*/
+void drawFence(double x, double y, double z,
+               double dx, double dy, double dz,
+               double th)
+{
+    glPushMatrix();
+    glTranslated(x,y,z);
+    glRotated(th,0,1,0);
+    glScaled(dx,dy,dz);
+     // Define material for specular and emission
+   glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
+   glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white); // specular component as white
+   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
+
+   glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D,fenceTexture);
+   glBegin(GL_QUADS);
+
+   glColor3f(1,1,1);
+   // Left
+   glNormal3f(0,0,-1);
+   glTexCoord2f(0,0); glVertex3f(-1,-1,1.5);
+   glTexCoord2f(8,0); glVertex3f(+1,-1,1.5);
+   glTexCoord2f(8,6); glVertex3f(+1,+1,1.5);
+   glTexCoord2f(0,6); glVertex3f(-1,+1,1.5);
+   
+   // Rightw
+   glNormal3f(0,0,1);
+   glTexCoord2f(0,0); glVertex3f(+1,-1,-1);
+   glTexCoord2f(8,0); glVertex3f(-1,-1,-1);
+   glTexCoord2f(8,6); glVertex3f(-1,+1,-1);
+   glTexCoord2f(0,6); glVertex3f(+1,+1,-1);
+   
+   // Back
+   glNormal3f(-1,0,0);
+   glTexCoord2f(0,0); glVertex3f(+1,-1,+1.5);
+   glTexCoord2f(8,0); glVertex3f(+1,-1,-1);
+   glTexCoord2f(8,6); glVertex3f(+1,+1,-1);
+   glTexCoord2f(0,6); glVertex3f(+1,+1,+1.5);
+   
+   // Front
+   glNormal3f(-1,0,0);
+   glTexCoord2f(0,0); glVertex3f(-1,-1,+1.5);
+   glTexCoord2f(8,0); glVertex3f(-1,-1,-1);
+   glTexCoord2f(8,6); glVertex3f(-1,+1,-1);
+   glTexCoord2f(0,6); glVertex3f(-1,+1,+1.5);
+   glEnd();
+
+   glDisable(GL_TEXTURE_2D);
+   
+   glPopMatrix();
+
+
+
+}
+
 
 void renderScene(void)
 {
     const float base = 0.6;
    
     object = DIRTROAD;
-    cube(-0.25,0,0,3.25,0.1,2,0); // draw a cube to make a dirt road.
+    cube(-0.25,0,0,4.2,0.1,2,0); // draw a cube to make a dirt road.
     // cube(3,0,0,1.0,0.1,2,0); // forest area
 
     drawforest(); // draw forest
 
-   // lake on the left side of the dirt road
+//    lake on the left side of the dirt road
     object = LAKE;
-
     cube(0,0.1,0,0.8,0.05,1.75,0);
 
-    //waves
+
+   // draw a fence around the lake
+   drawFence(0,0.2,-0.35,0.85,0.05,1.5,0);
+
+
+
+//     //waves
     float diffuse[] = {0.28,0.46,1.0,1.0};
 	float specular[] = {1.0,1.0,1.0,1.0};
 	float shininess[] = {20.0};   
@@ -1061,15 +1175,19 @@ void renderScene(void)
 	glDisable(GL_LIGHTING);
 	glPopMatrix();
    
-//     //fracMountain(-3,0.0,-1,  1.8,0.0,-1,  2.0,0.0,-1,  4.0,0.0,-1);
+//   fracMountain(-3,0.0,-3,  1.8,0.0,-3,  2.0,0.0,-3,  3.0,0.0,-3);
 //     //fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
 
-    drawCabin(-2.35,0,0,1.1,0.8,0.55,0);
-    createTree(2.9,0,1.2,0.5,0.05);
-    createTree(-1,0,0.1,0.5,0.05);
-    createTree(-1,0,0.1,0.4,0.05);
-    //createTree(0,0,0.4,0.5,0.1);
-    
+    drawCabin(-2.5,0,0,1.35,0.8,0.55,0);
+   
+
+    //bench for view point
+    drawViewBench(1.2,0.22,0.35,0.4,0.3,0.7,-30);
+
+    createTree(3.5,0,1,0.5,0.05);
+    createTree(-1.1,0,0.3,0.5,0.05);
+    createTree(-1.1,0,0.3,0.4,0.05);
+
 }
 
 void projection(void)
@@ -1490,14 +1608,18 @@ int main(int argc,char* argv[])
     woodTexture = LoadTexBMP("images/bark.bmp");
     leafTexture = LoadTexBMP("images/treeleaves.bmp");
     lakeTexture = LoadTexBMP("images/lake.bmp");
+    fenceTexture = LoadTexBMP("images/fence.bmp");
 
     roofTexture = LoadTexBMP("images/roof.bmp");
     exteriorWall = LoadTexBMP("images/brick.bmp");
     interiorWall = LoadTexBMP("images/housewall.bmp");
+    cotWoodTexture = LoadTexBMP("images/cotwood.bmp");
     mattressTexture = LoadTexBMP("images/mattress.bmp");
     chairTexture = LoadTexBMP("images/chair.bmp");
     floorTexture = LoadTexBMP("images/floor.bmp");
     doorTexture = LoadTexBMP("images/door.bmp");
+
+    benchTexture = LoadTexBMP("images/parkbench.bmp");
 
      
     
