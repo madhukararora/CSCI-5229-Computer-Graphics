@@ -53,7 +53,7 @@ typedef enum{ ORTHOGONAL = 0, PERSPECTIVE,FIRSTPERSON}MODES_T;
 MODES_T mode = ORTHOGONAL;
 
 
-typedef enum{DIRTROAD, GRASS, LAKE, COT, MATTRESS, CHAIR, BENCH,}OBJECTS_T;
+typedef enum{DIRTROAD, GRASS, LAKE, COT, MATTRESS, CHAIR, BENCH,BRIDGE}OBJECTS_T;
 OBJECTS_T object;
 
 float tx_X, tx_Y; // variables for applying texture coordinates to different objects
@@ -82,7 +82,7 @@ const float black[] = {0,0,0,1};
 
 
 // door
-int doorOpen = 1; // initially door is closed.
+int doorOpen = 0; // initially door is closed.
 
 
 
@@ -110,6 +110,7 @@ unsigned int woodTexture;
 unsigned int lakeTexture;
 unsigned int fenceTexture;
 unsigned int benchTexture;
+unsigned int bridgeTexture;
 
 
 // Fractal Tree
@@ -408,7 +409,7 @@ void drawXYZ(void)
 {
     glPointSize(10);
     glColor3f(1.0,1.0,1.0); //color - white
-    glTranslated(-1,0,-1);
+    glTranslated(-1.6,0,-1.6);
     glBegin(GL_LINES);
     glVertex3d(0,0,0);
     glVertex3d(len,0,0); //X-axis
@@ -504,6 +505,13 @@ static void cube(double x,double y,double z,
        glEnable(GL_TEXTURE_2D);
        glBindTexture(GL_TEXTURE_2D,benchTexture);
 
+   }
+   else if(object == BRIDGE)
+   {
+       tx_X = 1.0;
+       tx_Y = 1.0;
+       glEnable(GL_TEXTURE_2D);
+       glBindTexture(GL_TEXTURE_2D,bridgeTexture);
    }
    
    glBegin(GL_QUADS);  // cube
@@ -922,6 +930,11 @@ static void drawCabin(double x, double y, double z,
    glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,+1);
    glTexCoord2f(0,tex_y);glVertex3f(-0.99,+1,-1);
 
+    // Inside wall section above the door (along Z-axis)
+   glTexCoord2f(0,0);glVertex3f(+0.99,y,+1);
+   glTexCoord2f(tex_x,0);glVertex3f(+0.99,y,-0.3);
+   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.99,+1,-0.3);
+   glTexCoord2f(0,tex_y);glVertex3f(+0.99,+1,+1);
 
    
 
@@ -933,7 +946,7 @@ static void drawCabin(double x, double y, double z,
     glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+4,y+0.3,z-0.3,0.23,0.03,0.95,0);
+	cube(x+4.7,y+0.3,z-0.3,0.23,0.03,0.95,0);
 	glPopMatrix();
 	
 
@@ -942,7 +955,7 @@ static void drawCabin(double x, double y, double z,
     glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+4,y+0.40,z-0.3,0.2,0.04,0.8,0);
+	cube(x+4.7,y+0.40,z-0.3,0.2,0.04,0.8,0);
 	glPopMatrix();
 	
 
@@ -951,13 +964,13 @@ static void drawCabin(double x, double y, double z,
 	glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+4.4,y+0.5,z+0.8,0.05,0.05,0.4,0);
-	cube(x+4.4,y+0.7,z+1.1,0.05,0.2,0.1,0);
+	cube(x+5.1,y+0.5,z+0.8,0.05,0.05,0.4,0);
+	cube(x+5.1,+0.7,z+1.1,0.05,0.2,0.1,0);
     //chair legs
-    cube(x+4.445,y+0.3,z+1.15,0.01,0.2,0.05,0);
-    cube(x+4.355,y+0.3,z+1.15,0.01,0.2,0.05,0);
-    cube(x+4.445,y+0.3,z+0.45,0.01,0.2,0.05,0);
-    cube(x+4.355,y+0.3,z+0.45,0.01,0.2,0.05,0);
+    cube(x+5.145,y+0.3,z+1.15,0.01,0.2,0.05,0);
+    cube(x+5.055,y+0.3,z+1.15,0.01,0.2,0.05,0);
+    cube(x+5.145,y+0.3,z+0.45,0.01,0.2,0.05,0);
+    cube(x+5.055,y+0.3,z+0.45,0.01,0.2,0.05,0);
    	glPopMatrix();
    
    
@@ -966,6 +979,13 @@ static void drawCabin(double x, double y, double z,
    glBindTexture(GL_TEXTURE_2D,roofTexture);
    drawRoof(x,y+dy,z,dx,dy,dz,th);
    glDisable(GL_TEXTURE_2D);
+
+
+
+   // cabin light
+   glColor3f(1, 0, 0);
+   cylinder(x,y+1.25,z-0.1,0,90,0.003,0.25);
+   ball(x,y+1,z-0.1,0.05);
 
 }
 
@@ -994,13 +1014,13 @@ static void drawforest(void)
     const float y = 0.6;
     for(z = 2.0; z >= -1.7; z = z-0.25)
     {
-        for(x = 1.2; x <= 3.2; x = x+0.2)
+        for(x = 1.8; x <= 4; x = x+0.2)
         {
             if(z >= 0.25)
                 continue;
             tree(x,y,z,0.1,0.5);
         }
-        for(x = -3.4; x <= -1; x = x+0.2)
+        for(x = -3.8; x <= -1.4; x = x+0.2)
         {
             if((z <= 0.6) && (z >= -0.5))
                 continue;
@@ -1114,10 +1134,54 @@ void drawFence(double x, double y, double z,
    glDisable(GL_TEXTURE_2D);
    
    glPopMatrix();
-
-
-
 }
+
+/*
+* Draw a fence at x,y,z 
+* of length dx, height dy and width dz
+* rotated th about the Y-axis
+*
+*/
+void drawBridge(double x, double y, double z,
+               double dx,double dy, double dz,
+               double th)
+{
+
+    glPushMatrix();
+    glTranslated(x,y,z);
+    glRotated(th,0,1,0);
+    glScaled(dx,dy,dz);
+
+
+     // Define material for specular and emission
+    glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
+    glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white); // specular component as white
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
+
+
+    object = BRIDGE;
+    cube(x,y,z,0.9,0.2,0.3,0);
+
+    glPopMatrix();
+
+      //right side
+    cube(1.3,0.13,0,0.05,0.04,0.2,0);
+    cube(1.2,0.21,0,0.05,0.04,0.2,0);
+    cube(1.1,0.29,0,0.05,0.04,0.2,0);
+    cube(1.0,0.37,0,0.05,0.04,0.2,0);
+    cube(0.9,0.45,0,0.06,0.04,0.2,0);
+    cube(0.8,0.533,0,0.05,0.05,0.2,0);
+
+    //left side
+    cube(-1.3,0.13,0,0.05,0.04,0.2,0);
+    cube(-1.2,0.21,0,0.05,0.04,0.2,0);
+    cube(-1.1,0.29,0,0.05,0.04,0.2,0);
+    cube(-1.0,0.37,0,0.05,0.04,0.2,0);
+    cube(-0.9,0.45,0,0.06,0.04,0.2,0);
+    cube(-0.8,0.533,0,0.05,0.05,0.2,0);
+}
+
+
 
 
 void renderScene(void)
@@ -1125,7 +1189,7 @@ void renderScene(void)
  
     // Draw a dirt road as base
     object = DIRTROAD;
-    cube(-0.25,0,0,4.2,0.1,2,0); 
+    cube(-0.25,0,0,4.4,0.1,2,0); 
 
 
     // Draw forest trees on L and R side of the scene
@@ -1167,13 +1231,17 @@ void renderScene(void)
 
 
     // cabin house along with interior
-    drawCabin(-2.5,0,0,1.35,0.8,0.55,0);
+    drawCabin(-3,0,0,1.4,0.8,0.55,0);
+
+    // bridge across the lake
+    drawBridge(0,0.5,0,0.85,0.1,0.75,0);
+
    
 
     //bench for view point
     drawViewBench(1.2,0.22,0.35,0.4,0.3,0.7,-30);
 
-    createTree(3.5,0,1,0.5,0.05,0.1);
+    createTree(3.8,0,1,0.5,0.05,0.1);
     createTree(-1.1,0,0.3,0.5,0.05,0.2);
     createTree(-1.1,0,0.3,0.4,0.05,0.3);
 
@@ -1607,6 +1675,7 @@ int main(int argc,char* argv[])
     doorTexture = LoadTexBMP("images/door.bmp");
 
     benchTexture = LoadTexBMP("images/parkbench.bmp");
+    bridgeTexture = LoadTexBMP("images/bridge.bmp");
 
      
     
