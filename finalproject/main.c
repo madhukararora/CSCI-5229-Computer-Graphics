@@ -219,6 +219,8 @@ int branch(float l, float r)
 */
 int tree_branch(float l0, float r0)
 {
+
+
     // randomize length +/- 15%
     float l = l0*frand(0.85,1.15);
 
@@ -271,10 +273,10 @@ int tree_branch(float l0, float r0)
 
 
 
-void createTree(double x, double y, double z, double h, double r)
+void createTree(double x, double y, double z, double h, double r, float seed)
 {
     glTranslated(x,y,z);
-    srand(0.1); // restart random with same value every frame
+    srand(seed); // restart random with same value every frame
     int ntri = tree_branch(h,r);
 
 
@@ -785,17 +787,20 @@ static void drawCabin(double x, double y, double z,
                  double dx, double dy, double dz,
                  double th)
 {
-    int tex_x = 4, tex_y = 2;
+    // X-Y coordinates for texture mapping
+    int tex_x = 4, tex_y = 2; 
     
+    // save transformation
     glPushMatrix();
+    // offset
     glTranslated(x,y,z);
     glRotated(th,0,1,0);
     glScaled(dx,dy,dz);
 
-   // Define material for specular and emission
-   glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
-   glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white); // specular component as white
-   glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
+    // Define material for specular and emission
+    glMaterialf(GL_FRONT_AND_BACK,GL_SHININESS,shiny);
+    glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,white); // specular component as white
+    glMaterialfv(GL_FRONT_AND_BACK,GL_EMISSION,black); // emission component as black
 
 
 
@@ -874,20 +879,11 @@ static void drawCabin(double x, double y, double z,
    }
 
 
-
-
-
-
-
-
-
-
  // draw floor 
    glEnable(GL_TEXTURE_2D);
    glBindTexture(GL_TEXTURE_2D,floorTexture);
    glBegin(GL_QUADS);
    glNormal3f(0,-1,0); //positive y-axis
-    // glColor3f(1.0,1.0,0.0);
    glTexCoord2f(0,0);glVertex3f(-1,y+0.13,+1);
    glTexCoord2f(tex_x,0);glVertex3f(+1,y+0.13,+1);
    glTexCoord2f(tex_x,tex_y);glVertex3f(+1,y+0.13,-1);
@@ -899,7 +895,7 @@ static void drawCabin(double x, double y, double z,
    
    
 // Inner walls - adding inner walls to add different texture to interior
-// add stone wall like texture for interior 
+
    
    glEnable(GL_TEXTURE_2D);
    glBindTexture(GL_TEXTURE_2D,interiorWall);
@@ -908,14 +904,12 @@ static void drawCabin(double x, double y, double z,
    glBegin(GL_QUADS);
 
    // interior back wall along X-axis
-   glNormal3f( 0, 0, -1);
    glTexCoord2f(0,0);glVertex3f(+1,y,+0.99);
    glTexCoord2f(tex_x,0);glVertex3f(-1,y,+0.99);
    glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,+0.99);
    glTexCoord2f(0,tex_y);glVertex3f(+1,+1,+0.99);
 
    // interior back wall along X-axis
-   glNormal3f(0, 0, +1);
    glTexCoord2f(0,0);glVertex3f(+1,y,-0.99);
    glTexCoord2f(tex_x,0);glVertex3f(-1,y,-0.99);
    glTexCoord2f(tex_x,tex_y);glVertex3f(-1,+1,-0.99);
@@ -923,20 +917,12 @@ static void drawCabin(double x, double y, double z,
 
 
    // Inside wall section without door (along Z-axis)
-   glNormal3f(+1, 0, 0);
-     glTexCoord2f(0,0);glVertex3f(-0.99,y,-1);
+   glTexCoord2f(0,0);glVertex3f(-0.99,y,-1);
    glTexCoord2f(tex_x,0);glVertex3f(-0.99,y,+1);
    glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,+1);
    glTexCoord2f(0,tex_y);glVertex3f(-0.99,+1,-1);
 
 
-
-//    // Inside wall section above the door (along Z-axis)
-   glNormal3f(-1, 0, 0); //negative x-axis
-   glTexCoord2f(0,0);glVertex3f(+0.99,y,+1);
-   glTexCoord2f(tex_x,0);glVertex3f(+0.99,y,-0.3);
-   glTexCoord2f(tex_x,tex_y);glVertex3f(+0.99,+1,-0.3);
-   glTexCoord2f(0,tex_y);glVertex3f(+0.99,+1,+1);
    
 
    glEnd();
@@ -1096,28 +1082,28 @@ void drawFence(double x, double y, double z,
    glBegin(GL_QUADS);
 
    glColor3f(1,1,1);
-   // Left
-   glNormal3f(0,0,-1);
+   // Front of lake(along X)
+   glNormal3f(0,0,+1);
    glTexCoord2f(0,0); glVertex3f(-1,-1,1.5);
    glTexCoord2f(8,0); glVertex3f(+1,-1,1.5);
    glTexCoord2f(8,6); glVertex3f(+1,+1,1.5);
    glTexCoord2f(0,6); glVertex3f(-1,+1,1.5);
    
-   // Rightw
-   glNormal3f(0,0,1);
+    // Back of lake(along X)
+   glNormal3f(0,0,-1);
    glTexCoord2f(0,0); glVertex3f(+1,-1,-1);
    glTexCoord2f(8,0); glVertex3f(-1,-1,-1);
    glTexCoord2f(8,6); glVertex3f(-1,+1,-1);
    glTexCoord2f(0,6); glVertex3f(+1,+1,-1);
    
-   // Back
-   glNormal3f(-1,0,0);
+   // Right side of lake
+   glNormal3f(+1,0,0);
    glTexCoord2f(0,0); glVertex3f(+1,-1,+1.5);
    glTexCoord2f(8,0); glVertex3f(+1,-1,-1);
    glTexCoord2f(8,6); glVertex3f(+1,+1,-1);
    glTexCoord2f(0,6); glVertex3f(+1,+1,+1.5);
    
-   // Front
+   // Left side of lake
    glNormal3f(-1,0,0);
    glTexCoord2f(0,0); glVertex3f(-1,-1,+1.5);
    glTexCoord2f(8,0); glVertex3f(-1,-1,-1);
@@ -1136,25 +1122,26 @@ void drawFence(double x, double y, double z,
 
 void renderScene(void)
 {
-    const float base = 0.6;
-   
+ 
+    // Draw a dirt road as base
     object = DIRTROAD;
-    cube(-0.25,0,0,4.2,0.1,2,0); // draw a cube to make a dirt road.
-    // cube(3,0,0,1.0,0.1,2,0); // forest area
+    cube(-0.25,0,0,4.2,0.1,2,0); 
 
-    drawforest(); // draw forest
 
-//    lake on the left side of the dirt road
+    // Draw forest trees on L and R side of the scene
+    drawforest();
+
+    //Draw a water body in the center of the scene
     object = LAKE;
     cube(0,0.1,0,0.8,0.05,1.75,0);
 
 
-   // draw a fence around the lake
+   // fence around the lake
    drawFence(0,0.2,-0.35,0.85,0.05,1.5,0);
 
 
 
-//     //waves
+    //waves
     float diffuse[] = {0.28,0.46,1.0,1.0};
 	float specular[] = {1.0,1.0,1.0,1.0};
 	float shininess[] = {20.0};   
@@ -1178,15 +1165,17 @@ void renderScene(void)
 //   fracMountain(-3,0.0,-3,  1.8,0.0,-3,  2.0,0.0,-3,  3.0,0.0,-3);
 //     //fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
 
+
+    // cabin house along with interior
     drawCabin(-2.5,0,0,1.35,0.8,0.55,0);
    
 
     //bench for view point
     drawViewBench(1.2,0.22,0.35,0.4,0.3,0.7,-30);
 
-    createTree(3.5,0,1,0.5,0.05);
-    createTree(-1.1,0,0.3,0.5,0.05);
-    createTree(-1.1,0,0.3,0.4,0.05);
+    createTree(3.5,0,1,0.5,0.05,0.1);
+    createTree(-1.1,0,0.3,0.5,0.05,0.2);
+    createTree(-1.1,0,0.3,0.4,0.05,0.3);
 
 }
 
@@ -1277,7 +1266,7 @@ void display(void)
 
         // draw light position as ball (still no lighting here)
         glColor3f(1,1,1);
-        ball(Position[0],Position[1],Position[2],0.1);
+        ball(Position[0],Position[1],Position[2],0.1); //radius 0.1
 
         //OpenGL should normalize normal vectors
         glEnable(GL_NORMALIZE);
@@ -1312,8 +1301,6 @@ void display(void)
 
 
     
-    // glTranslated(0,0,0);
-    // srand(0.1); // restart random with same value every frame
     renderScene();
 
      /* draw the axis */
@@ -1576,13 +1563,13 @@ int main(int argc,char* argv[])
     /* initialize OpenGL Utility Tool */
     glutInit(&argc,argv);
 
-    /* Request double bufferred true color window */
+    /* Request double bufferred true color window with Z-buffering */
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH); 
 
     glutInitWindowPosition(300,300);
 
-    /* Request 600 x 600 pixel window */
-    glutInitWindowSize(600,600);
+    /* Request 840 x 840 pixel window */
+    glutInitWindowSize(840,840);
 
     /* Create Window */
     glutCreateWindow("Final Project : Cabin in the Woods");
