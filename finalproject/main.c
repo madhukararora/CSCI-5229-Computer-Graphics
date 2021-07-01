@@ -24,14 +24,14 @@
 
 
 //Globals
-int th = -25;             //  Azimuth of view angle
-int ph = 15;            //  Elevation of view angle
-int axes=1;           //  Display axes
-int fov = 60;        //  field of view for perspective
+int th = -25;               //  Azimuth of view angle
+int ph = 15;               //  Elevation of view angle
+int axes=1;               //  Display axes
+int fov = 60;             //  field of view for perspective
 
-double asp = 1;    //  aspect ratio
-double dim = 5.0;  // dimension of orthogonal box
-double len = 2.0;  //length of axes
+double asp = 1;          //  aspect ratio
+double dim = 5.0;        // dimension of orthogonal box
+double len = 2.0;       //length of axes
 
 //parameters for first person view
 int th_FP = -30;
@@ -1535,6 +1535,7 @@ void key(unsigned char ch,int x, int y)
       EX = -2.6;
       EZ = -0.3;
       dim = 5.0;
+      doorOpen = 0;
   }
 
   else if(ch == 'x' || ch == 'X') // toggle Axes
