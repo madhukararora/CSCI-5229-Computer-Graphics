@@ -24,17 +24,17 @@
 
 
 //Globals
-int th = 0;             //  Azimuth of view angle
-int ph = 90;            //  Elevation of view angle
+int th = -25;             //  Azimuth of view angle
+int ph = 15;            //  Elevation of view angle
 int axes=1;           //  Display axes
-int fov = 58;        //  field of view for perspective
+int fov = 60;        //  field of view for perspective
 
 double asp = 1;    //  aspect ratio
-double dim = 4.0;  // dimension of orthogonal box
+double dim = 5.0;  // dimension of orthogonal box
 double len = 2.0;  //length of axes
 
 //parameters for first person view
-int th_FP = 0;
+int th_FP = -30;
 int ph_FP = 0;
 /* where the camera is looking*/
 double MX = 0.0;
@@ -42,9 +42,9 @@ double MY = 0.0;
 double MZ = 0.0;
 
 /* camera position*/
-double EX = 0; 
+double EX = 2.0; 
 double EY = 0.7;
-double EZ = 5.2;
+double EZ = 1.8;
 
 /* different modes*/
 const char* text[] = {"Orthogonal","Perspective","First Person"};
@@ -82,7 +82,7 @@ const float black[] = {0,0,0,1};
 
 
 // door
-int doorOpen = 0; // initially door is closed.
+int doorOpen = 0; // open or close door
 
 
 
@@ -121,12 +121,12 @@ float branch_angle = 20; // angle of branches - between the vertical and the nex
 float branch_ratio = 0.69; // length before branching
 float branch_shrink = 0.7; // branch radius shrink
 
-#define MAXQUADS 300
-int phaseInc=10;
-unsigned long int phaseAngle=5;
-double stepSize=1;
-double vertex[MAXQUADS][MAXQUADS][3];
-double normal[MAXQUADS][MAXQUADS][3];
+
+//Waves for the pond
+#define NUM_CIRCLES 300
+int angle_increment=10, angle=5;
+double vertex[NUM_CIRCLES][NUM_CIRCLES][3];
+double normal[NUM_CIRCLES][NUM_CIRCLES][3];
 
 
 /*
@@ -137,8 +137,6 @@ float frand(float min, float max)
 {
     return min+random()*(max-min)/RAND_MAX;
 }
-
-
 
 
 /*
@@ -285,7 +283,7 @@ void createTree(double x, double y, double z, double h, double r, float seed)
 
 
 // Mountain 
-double tolerance = 0.015;
+double tolerance = 0.025;
 double lightPos[3] = {50,35,1.95};
 
 double randomNormal (double mu, double sigma)
@@ -303,6 +301,8 @@ void fracMountain(float x1, float y1, float z1, float x2, float y2, float z2, fl
  
     double perim = sqrt((x2-x1)*(x2-x1) + (z2-z1)*(z2-z1)) + sqrt((x3-x2)*(x3-x2) + (z3-z2)*(z3-z2))
         + sqrt((x4-x3)*(x4-x3) + (z4-z3)*(z4-z3)) + sqrt((x1-x4)*(x1-x4) + (z1-z4)*(z1-z4));
+
+    // draw polygon
     if(perim <= tolerance)
     {
         double v1=x2-x1, v2=y2-y1, v3=z2-z1;
@@ -320,12 +320,16 @@ void fracMountain(float x1, float y1, float z1, float x2, float y2, float z2, fl
         double norml = sqrt(tolightx*tolightx + tolighty*tolighty + tolightz*tolightz);
 
         double lightamt=dot/(normc*norml);
+        
+        
         if(lightamt>1)
             lightamt=1;
         if(lightamt<0)
             lightamt=0.5;
 
         lightamt=(lightamt*2 +0.15)/2.15;
+        
+        // add effects to make the mountains look snow-capped.
         glColor3f(lightamt,lightamt,lightamt);
         glBegin(GL_POLYGON);
             glVertex3f(x1,y1,z1);
@@ -334,11 +338,12 @@ void fracMountain(float x1, float y1, float z1, float x2, float y2, float z2, fl
             glVertex3f(x4,y4,z4);
         glEnd();
     }
-    else
+    else //recursively call fracMountain()
     {
         double r1 = (double)randomNormal(0.041, 0.1);
         double r2 = (double)randomNormal(0.0,   0.01);
         double r3 = (double)randomNormal(0.0,   0.01);
+        // calculate mid points on the X, Y and Z axis.
         double xmid = ((x1+x2+x3+x4)/4)+r2*perim;
         double ymid = ((y1+y2+y3+y4)/4)+r1*perim;
         if(ymid<0)
@@ -383,7 +388,7 @@ static void ball(double x,double y,double z,double r)
    //  White ball with yellow specular
    float yellow[]   = {1.0,1.0,0.0,1.0};
    float Emission[] = {0.0,0.0,0.01*emission,1.0};
-   glColor3f(1,1,1);
+ 
    glMaterialf(GL_FRONT,GL_SHININESS,shiny);
    glMaterialfv(GL_FRONT,GL_SPECULAR,yellow);
    glMaterialfv(GL_FRONT,GL_EMISSION,Emission);
@@ -434,7 +439,6 @@ void drawXYZ(void)
 
 ///////////////////////////////////////////////////SHAPES////////////////////////////////////////////////////////////////
 
-// TO DO : add textures based on different objects that depend on cube as primary.
 /*
  *  Draw a cube
  *     at (x,y,z)
@@ -930,7 +934,7 @@ static void drawCabin(double x, double y, double z,
    glTexCoord2f(tex_x,tex_y);glVertex3f(-0.99,+1,+1);
    glTexCoord2f(0,tex_y);glVertex3f(-0.99,+1,-1);
 
-    // Inside wall section above the door (along Z-axis)
+    // Inside wall section with the door (along Z-axis)
    glTexCoord2f(0,0);glVertex3f(+0.99,y,+1);
    glTexCoord2f(tex_x,0);glVertex3f(+0.99,y,-0.3);
    glTexCoord2f(tex_x,tex_y);glVertex3f(+0.99,+1,-0.3);
@@ -946,7 +950,7 @@ static void drawCabin(double x, double y, double z,
     glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+4.7,y+0.3,z-0.3,0.23,0.03,0.95,0);
+	cube(x+5.3,y+0.3,z-0.3,0.23,0.03,0.95,0);
 	glPopMatrix();
 	
 
@@ -955,7 +959,7 @@ static void drawCabin(double x, double y, double z,
     glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+4.7,y+0.40,z-0.3,0.2,0.04,0.8,0);
+	cube(x+5.3,y+0.40,z-0.3,0.2,0.04,0.8,0);
 	glPopMatrix();
 	
 
@@ -964,13 +968,13 @@ static void drawCabin(double x, double y, double z,
 	glPushMatrix();
 	glTranslated(x,y,z);
 	glScaled(dx, dy, dz);
-	cube(x+5.1,y+0.5,z+0.8,0.05,0.05,0.4,0);
-	cube(x+5.1,+0.7,z+1.1,0.05,0.2,0.1,0);
+	cube(x+5.7,y+0.5,z+0.8,0.05,0.05,0.4,0);
+	cube(x+5.7,+0.7,z+1.1,0.05,0.2,0.1,0);
     //chair legs
-    cube(x+5.145,y+0.3,z+1.15,0.01,0.2,0.05,0);
-    cube(x+5.055,y+0.3,z+1.15,0.01,0.2,0.05,0);
-    cube(x+5.145,y+0.3,z+0.45,0.01,0.2,0.05,0);
-    cube(x+5.055,y+0.3,z+0.45,0.01,0.2,0.05,0);
+    cube(x+5.745,y+0.3,z+1.15,0.01,0.2,0.05,0);
+    cube(x+5.655,y+0.3,z+1.15,0.01,0.2,0.05,0);
+    cube(x+5.745,y+0.3,z+0.45,0.01,0.2,0.05,0);
+    cube(x+5.655,y+0.3,z+0.45,0.01,0.2,0.05,0);
    	glPopMatrix();
    
    
@@ -982,12 +986,19 @@ static void drawCabin(double x, double y, double z,
 
 
 
+   
+   cylinder(x,y+1.45,z,0,90,0.003,0.45);
    // cabin light
-   glColor3f(1, 0, 0);
-   cylinder(x,y+1.25,z-0.1,0,90,0.003,0.25);
-   ball(x,y+1,z-0.1,0.05);
+   glColor3f(1.0, 1.0, 0);
+   ball(x,y+1,z,0.05);
 
 }
+
+/**
+ * @brief convenience function to draw a picnic bench
+ *        at (x,y,z) of size dx,dy,dz rotated
+ *        th about the Y-axis
+ */
 
 static void drawViewBench(double x, double y, double z, 
                  double dx, double dy, double dz,
@@ -1007,6 +1018,10 @@ static void drawViewBench(double x, double y, double z,
    	glPopMatrix();
 }
 
+/**
+ * @brief convenience function to draw a forest.
+ * 
+ */
 static void drawforest(void)
 {
 
@@ -1020,7 +1035,7 @@ static void drawforest(void)
                 continue;
             tree(x,y,z,0.1,0.5);
         }
-        for(x = -3.8; x <= -1.4; x = x+0.2)
+        for(x = -4; x <= -1.4; x = x+0.2)
         {
             if((z <= 0.6) && (z >= -0.5))
                 continue;
@@ -1030,47 +1045,59 @@ static void drawforest(void)
 
 }
 
-void genVerticesAndNormals()
+/**
+ * @brief convenience function to generate 
+ *        circles.
+ * https://stackoverflow.com/questions/22444450/drawing-circle-with-opengl
+ */
+void generateCircles()
 { 
-	int i,j;
-	double x,y,z,t,n;
-	t =- MAXQUADS*stepSize/2.0;
-	for (i=0;i<MAXQUADS;i++)
+	double x_vertex, y_vertex;
+    double waves_origin = 0, sine_value, cosine_value;
+	waves_origin = waves_origin - NUM_CIRCLES/2.0;
+	for(int i=0; i < NUM_CIRCLES; i++)
 	{
-		y = t+(double)i*stepSize;
-		for (j=0;j<MAXQUADS;j++)
+		y_vertex = waves_origin+i;
+        
+		for(int j=0; j < NUM_CIRCLES; j++)
 		{
-			x =t+(double)j*stepSize;
-			z =sin((x*x+y*y-phaseAngle)/100.0);
-			n =cos((x*x+y*y-phaseAngle)/100.0);
-			vertex[i][j][0] = x;
-			vertex[i][j][1] = y;
-			vertex[i][j][2] = z;
-			normal[i][j][0] = x*n;
-			normal[i][j][1] = y*n;
+			x_vertex = waves_origin+j;
+			sine_value = (x_vertex*x_vertex) + (y_vertex*y_vertex)- angle;
+			cosine_value = (x_vertex*x_vertex) + (y_vertex*y_vertex) - angle;
+
+            //generate vertices
+			vertex[i][j][0] = x_vertex;
+			vertex[i][j][1] = y_vertex;
+			vertex[i][j][2] = sin(sine_value/120);
+
+            //generate normals
+			normal[i][j][0] = x_vertex * cos(cosine_value/120);
+			normal[i][j][1] = y_vertex * cos(cosine_value/120);
 			normal[i][j][2] = 1;
 		}
 	}
 }
 
-void drawQuadsForWaves()
+void placeNumWaves()
 { 
-	int i,j;
-	for (i=0; i<MAXQUADS-1; i++){
-		for (j=0; j<MAXQUADS-1; j++)
+	for(int i=0; i<NUM_CIRCLES-1; i++)
+    {
+		for(int j=0; j<NUM_CIRCLES-1; j++)
 		{ 
 			glBegin(GL_QUADS);
-			glNormal3dv(normal[i][j]);
+
+            //draw based on normals
+            glNormal3dv(normal[i][j]);
+            glNormal3dv(normal[i][1+j]);
+            glNormal3dv(normal[1+i][1+j]);
+            glNormal3dv(normal[1+i][j]);
+
+            //draw based on vertices
 			glVertex3dv(vertex[i][j]);
-			
-			glNormal3dv(normal[i][j+1]);
-			glVertex3dv(vertex[i][j+1]);
-			
-			glNormal3dv(normal[i+1][j+1]);
-			glVertex3dv(vertex[i+1][j+1]);
-			
-			glNormal3dv(normal[i+1][j]);
-			glVertex3dv(vertex[i+1][j]);
+			glVertex3dv(vertex[i][1+j]);
+			glVertex3dv(vertex[1+i][1+j]);
+			glVertex3dv(vertex[1+i][j]);
+
 			glEnd();
 		}	
 	}
@@ -1181,34 +1208,18 @@ void drawBridge(double x, double y, double z,
     cube(-0.8,0.533,0,0.05,0.05,0.2,0);
 }
 
-
-
-
-void renderScene(void)
+/**
+ * @brief convenience function to draw waves in the lake
+ *        at (x,y,z) of size dx,dy,dz. 
+ *  
+ */
+void drawWaves(double x, double y, double z,
+               double dx,double dy, double dz,
+               double th)
 {
- 
-    // Draw a dirt road as base
-    object = DIRTROAD;
-    cube(-0.25,0,0,4.4,0.1,2,0); 
-
-
-    // Draw forest trees on L and R side of the scene
-    drawforest();
-
-    //Draw a water body in the center of the scene
-    object = LAKE;
-    cube(0,0.1,0,0.8,0.05,1.75,0);
-
-
-   // fence around the lake
-   drawFence(0,0.2,-0.35,0.85,0.05,1.5,0);
-
-
-
-    //waves
-    float diffuse[] = {0.28,0.46,1.0,1.0};
+    float diffuse[] = {0.18,0.16,0.9,1.0};
 	float specular[] = {1.0,1.0,1.0,1.0};
-	float shininess[] = {20.0};   
+	float shininess[] = {10.0};   
 	glMaterialfv(GL_FRONT_AND_BACK,GL_DIFFUSE,diffuse);
 	glMaterialfv(GL_FRONT_AND_BACK,GL_SPECULAR,specular);
 	glMaterialfv(GL_FRONT_AND_BACK,GL_SHININESS,shininess);
@@ -1218,57 +1229,63 @@ void renderScene(void)
 	glEnable(GL_LIGHT0);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_NORMALIZE);
-	glTranslated(0,0.145,0);
-	glScaled(0.0053,0.013,0.0116);
-	glRotatef(90, 0.01, 0.0, 0.0);	 
-	genVerticesAndNormals();
-	drawQuadsForWaves();
+	glTranslated(x, y, z);
+	glScaled(dx, dy, dz);
+	glRotatef(th, 1, 0.0, 0.0);	 
+	generateCircles();
+	placeNumWaves();
 	glDisable(GL_LIGHTING);
 	glPopMatrix();
-   
-//   fracMountain(-3,0.0,-3,  1.8,0.0,-3,  2.0,0.0,-3,  3.0,0.0,-3);
-//     //fracMountain(-1.00,0.0,-5.0,  -1.00,0.0,-4.0,  0.80,0.0,-4.0,  0.80,0.0,-5.0);
 
+}
+
+
+/**
+ * @brief convience function to create
+ *        the entire scence
+ * 
+ */
+void renderScene(void)
+{
+ 
+    // Draw a dirt road as base
+    object = DIRTROAD;
+    cube(-0.25,0,0,4.6,0.1,2,0); 
+
+
+    // Draw forest trees on L and R side of the scene
+    drawforest();
+
+    //Draw a water like body in the center of the scene
+    object = LAKE;
+    cube(0,0.1,0,0.8,0.05,1.75,0);
+
+   // fence around the lake
+   drawFence(0,0.2,-0.35,0.85,0.05,1.5,0);
+
+   
+    fracMountain(-3,0.0,-3,  1.8,0.0,-3,  2.0,0.0,-3,  3.0,0.0,-3);
 
     // cabin house along with interior
-    drawCabin(-3,0,0,1.4,0.8,0.55,0);
+    glColor3f(1,1,1);
+    drawCabin(-3.4,0,0,1.5,0.8,0.55,0);
 
     // bridge across the lake
+    glColor3f(1.0,1.0,1.0);
     drawBridge(0,0.5,0,0.85,0.1,0.75,0);
-
-   
 
     //bench for view point
     drawViewBench(1.2,0.22,0.35,0.4,0.3,0.7,-30);
 
+    // trees around the bench view point
     createTree(3.8,0,1,0.5,0.05,0.1);
     createTree(-1.1,0,0.3,0.5,0.05,0.2);
     createTree(-1.1,0,0.3,0.4,0.05,0.3);
 
+    //waves
+    drawWaves(-1.6,0.145,-1.6,0.0053,0.013,0.0116,90);
+
 }
-
-void projection(void)
-{
-    // inform OpenGL we want to manipulate the projection matrix
-    glMatrixMode(GL_PROJECTION);
-
-    //reset transformation - clears changes made earlier
-    glLoadIdentity();
-
-    if(mode)
-    {
-        gluPerspective(fov,asp,dim/8,8*dim);
-    }
-    else
-    {
-        glOrtho(-asp*dim,+asp*dim,-dim,+dim,-dim,+dim);
-    }
-    glMatrixMode(GL_MODELVIEW);
-
-    //reset transformation
-    glLoadIdentity();
-}
-
 
 
 
@@ -1398,7 +1415,7 @@ void idle(void) //DO NOT MODIFY
     /* spin angle - 90 degrees/second */
     zh = fmod(90*t,360);
 
-     phaseAngle += phaseInc;
+     angle += angle_increment;
     /* update display */
     glutPostRedisplay();
 }
@@ -1492,6 +1509,8 @@ void special(int key,int x, int y)
     glutPostRedisplay();
 }
 
+
+/* function called by GLUT when a key is pressed*/
 void key(unsigned char ch,int x, int y)
 {
    //  Exit on ESC
@@ -1499,6 +1518,25 @@ void key(unsigned char ch,int x, int y)
   {
     exit(0);
   }
+  else if(ch == '1')// go to bench view
+  {
+      mode = FIRSTPERSON;
+      th_FP = -30;
+      ph_FP = 0;
+      EX = 2.0;
+      EZ = 1.8;
+      dim = 5.0;
+  }
+  else if(ch == '2') // press for cabin view
+  {
+      mode = FIRSTPERSON;
+      th_FP = -107.0;
+      ph_FP = 0;
+      EX = -2.6;
+      EZ = -0.3;
+      dim = 5.0;
+  }
+
   else if(ch == 'x' || ch == 'X') // toggle Axes
   {
       axes = 1-axes;
@@ -1568,8 +1606,12 @@ void key(unsigned char ch,int x, int y)
     //  Reset view angle
     if (ch == '0')
     {
-      th = 0;
-      ph = 90;
+        th = -25; ph = 15;
+        fov = 60; 
+        asp = 1.0;
+        dim = 5.0;
+
+
     }
     //  Change field of view angle
     else if (ch == '-' && ch>1)
@@ -1585,11 +1627,20 @@ void key(unsigned char ch,int x, int y)
   {
     if (ch == '0')
     {
-        th_FP = 0; ph_FP =0;
-        dim = 5.2;
-        EX = 0;
-        EY = 0;
-        EZ = 5.2;
+        th_FP = -30; ph_FP =0;
+        dim = 5.0;
+        EX = 2.0;
+        EZ = 1.8;
+    }
+    else if(ch == 'w' || ch == 'W')
+    {
+        EX += Cos(ph_FP)/2;
+        EY += Cos(ph_FP)/2;
+    }
+    else if(ch == 's' || ch == 'S')
+    {
+        EX -= Cos(ph_FP)/2;
+        EY -= Cos(ph_FP)/2;
     }
   }
     //  Translate shininess power to value (-1 => 0)

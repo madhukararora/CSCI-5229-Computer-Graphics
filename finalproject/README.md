@@ -3,7 +3,12 @@
 Submitted By : Madhukar Arora
 
 
-### Files Included
+## About the Project
+
+For the final project, I have created a three-dimensional walk through of a cabin located in a forest.  
+
+
+### Source Files Included
 1. CSCIx229.h
 2. errcheck.c
 3. fatal.c
@@ -14,11 +19,10 @@ Submitted By : Madhukar Arora
 8. main.c (source code - application entry point)
 9. Makefile 
 
-
 OS Requirements : Ubuntu 20.04 with Open GL installed and gcc C compiler.
 
 ### Compilation Instructions
-1. Extract the zipped folder submitted as part of this homework.
+1. Extract the zipped folder submitted as part of this submission.
 2. Change into the new directory created on unzip containing the source file and the Makefile for automated builds.
 3. Open terminal in this directory.
 4. Make commands 
@@ -87,10 +91,21 @@ OS Requirements : Ubuntu 20.04 with Open GL installed and gcc C compiler.
 ***-*** : Decrease the Field of View in Orthogonal/Perspective Mode  or Decrease the window dimension in First Person Mode.
 
 
-### Progress made so far 
 
-I took a significant amount of time figuring out creating the different components and how to place them in the three dimensional space. I have also been looking into creating fractal mountains and trees to make them more realistic but have not quite been successful. 
 
-### Things left to do
+### Highlights 
 
-I plan on adding the door to the cabin, and a bridge across the lake in my scene. The bridge will overlook the mountains and also serve as a view point for the scene. I've included the code for creating mountains (generated using fractals). There is an issue with them resizing. I am not quite able to figure out the issue and would appreciate any help with them. 
+1. The project has been implemented using OpenGl and written entirely in C.
+
+2. There is a cabin placed between a forest which one can go inside. The inside includes a floor bed, chair and a ceiling lamp to give a rustic look inside.
+
+3. The scene includes a bench that gives views overlooking the lake and the mountains.
+
+4. The two sides of the lake are connected using a bridge and serves as another view point of the entire scenery. I've also added effects to make the water in the lake look more realistic.
+
+
+### Learnings from the course
+
+Coming from a background with no experience in Computer Graphics, I've learnt a lot in the past four weeks from the course. I've developed a thought process of how to create basic shapes, how to apply lighting and textures to them and how to create scenes using these. 
+
+
